@@ -106,10 +106,11 @@ PREV_JOY        = $66
 LAST_TIMER      = $67
 EQ_PHASE        = $68
 SAMPLE_PEAK     = $69
+REM_BG_BANKS    = $6A
 
 START:
         CLD
-        LDX #52
+        LDX #56
 INIT_BSRAM_LP:
         LDA BSRAM_SRC,X
         STA BSRAM_COPY_SEC,X
@@ -216,6 +217,28 @@ ML_RESTART_CUR:
         JSR START_HULP_CPU_FULL
 
 ML_STILL_PLAYING:
+        LDA REM_BG_BANKS
+        BEQ ML_VIS_GO
+        LDX #4
+ML_BG_LP:
+        STX TEMP_IDX
+        LDA #<SEC_TMP_BUF
+        STA ZP_DST
+        LDA #>SEC_TMP_BUF
+        STA ZP_DST+1
+        JSR ROM_READ_SEC
+        JSR BSRAM_COPY_SEC
+        DEC LOAD_SEC_CNT
+        BNE ML_BG_NX
+        LDA #128
+        STA LOAD_SEC_CNT
+        DEC REM_BG_BANKS
+        BEQ ML_VIS_GO
+ML_BG_NX:
+        LDX TEMP_IDX
+        DEX
+        BNE ML_BG_LP
+ML_VIS_GO:
         JSR UPDATE_LIVE_VISUALS
 
 ML_CHECK_INPUT:
@@ -701,21 +724,6 @@ READ_DIRECTORIES:
         STA ZP_DST+1
         JSR ROM_READ_SEC
 
-        LDA MP3_DIR_BUF
-        CMP #'M'
-        BNE RD_MP3_FALLBACK
-        LDA MP3_DIR_BUF+1
-        CMP #'P'
-        BEQ RD_READ_WAV
-RD_MP3_FALLBACK:
-        LDX #0
-RD_MFB_LP:
-        LDA DEFAULT_MP3_DIR,X
-        STA MP3_DIR_BUF,X
-        INX
-        BNE RD_MFB_LP
-
-RD_READ_WAV:
         LDA #$00
         STA DISK_SEC_LO
         LDA #$20
@@ -733,6 +741,7 @@ LOAD_AND_PLAY_SELECTED:
         LDA #0
         STA IO_ADMA_CTRL
         STA IO_PCM_RATE
+        STA REM_BG_BANKS
         LDA #128
         STA IO_PCM_DAC
 
@@ -742,12 +751,6 @@ LOAD_AND_PLAY_SELECTED:
 
         LDA SEL_MP3
         STA PLAY_IDX
-        ASL A
-        CLC
-        ADC #44
-        STA PLAY_START_BANK
-        STA CUR_LOAD_BANK
-
         JSR SET_MP3_DIR_PTR
         LDY #22
         LDA (ZP_PTR_LO),Y
@@ -760,17 +763,43 @@ LAPS_MP3_HI_OK:
         STA TOTAL_PG_HI
         LDA #0
         STA TOTAL_PG_LO
+        INY
+        LDA (ZP_PTR_LO),Y
+        BNE LAPS_MP3_RT_OK
         LDA #1
+LAPS_MP3_RT_OK:
         STA CUR_RATE
 
+        LDA TOTAL_PG_HI
+        CMP #3
+        BCC LAPS_MP3_SHORT
+        LDA #16
+        STA PLAY_START_BANK
+        STA CUR_LOAD_BANK
+        LDA #0
+        STA LOAD_SEC_CNT
+        BEQ LAPS_MP3_UI
+LAPS_MP3_SHORT:
+        LDA SEL_MP3
+        ASL A
+        CLC
+        ADC #46
+        STA PLAY_START_BANK
+        STA CUR_LOAD_BANK
+
+LAPS_MP3_UI:
         JSR DRAW_BOTH_PANES
         JSR DRAW_NOW_PLAYING
         JSR DRAW_RATE_BTNS
 
+        LDA TOTAL_PG_HI
+        CMP #3
+        BCS LAPS_MP3_DO_SD
         LDX SEL_MP3
         LDA MP3_CACHED,X
         BNE LAPS_START_READY
 
+LAPS_MP3_DO_SD:
         JSR SET_MP3_DIR_PTR
         LDY #20
         LDA (ZP_PTR_LO),Y
@@ -780,6 +809,16 @@ LAPS_MP3_HI_OK:
         STA DISK_SEC_HI
 
         JSR STREAM_SECTORS_FROM_SD
+        LDA TOTAL_PG_HI
+        CMP #3
+        BCC LAPS_MP3_SET_CACHED
+        SEC
+        SBC #2
+        STA REM_BG_BANKS
+        LDA #128
+        STA LOAD_SEC_CNT
+        BNE LAPS_START_READY
+LAPS_MP3_SET_CACHED:
         LDX SEL_MP3
         LDA #1
         STA MP3_CACHED,X
@@ -793,8 +832,6 @@ LAPS_SETUP_WAV:
         CLC
         ADC SEL_WAV
         STA PLAY_IDX
-        CLC
-        ADC #28
         STA PLAY_START_BANK
         STA CUR_LOAD_BANK
 
@@ -967,7 +1004,6 @@ UPDATE_LIVE_VISUALS:
         LDA #0
         STA PROG_X_LO
 ULV_PG_POS:
-        AND #$01
         STA PROG_X_HI
 
         LDA PLAY_START_BANK
@@ -981,9 +1017,27 @@ ULV_PG_POS:
         BNE ULV_SCALE_WAV
         LDA TOTAL_PG_HI
         CMP #1
-        BNE ULV_DRAW_PBAR
+        BNE ULV_CHK_LONG
         ASL PROG_X_LO
         ROL PROG_X_HI
+        JMP ULV_DRAW_PBAR
+ULV_CHK_LONG:
+        CMP #3
+        BCC ULV_DRAW_PBAR
+        LSR PROG_X_HI
+        ROR PROG_X_LO
+        CMP #5
+        BCC ULV_DRAW_PBAR
+        LSR PROG_X_HI
+        ROR PROG_X_LO
+        CMP #9
+        BCC ULV_DRAW_PBAR
+        LSR PROG_X_HI
+        ROR PROG_X_LO
+        CMP #17
+        BCC ULV_DRAW_PBAR
+        LSR PROG_X_HI
+        ROR PROG_X_LO
         JMP ULV_DRAW_PBAR
 ULV_SCALE_WAV:
         ASL PROG_X_LO
@@ -1355,19 +1409,33 @@ DMP_DRAW_ROW_BG:
         STA ZP_Y_LO
         JSR GPU_TEXT_1X
 
+        LDY #6
+        LDA (ZP_PTR_LO),Y
+        LDX #'0'
+DMP_MIN_LP:
+        CMP #60
+        BCC DMP_MIN_DN
+        SBC #60
+        INX
+        BNE DMP_MIN_LP
+DMP_MIN_DN:
+        STX STR_MP3_SIZE+1
+        LDX #'0'
+DMP_TEN_LP:
+        CMP #10
+        BCC DMP_TEN_DN
+        SBC #10
+        INX
+        BNE DMP_TEN_LP
+DMP_TEN_DN:
+        STX STR_MP3_SIZE+3
+        CLC
+        ADC #'0'
+        STA STR_MP3_SIZE+4
         LDA #<236
         STA ZP_X_LO
-        LDY #4
-        LDA (ZP_PTR_LO),Y
-        CMP #2
-        BEQ DMP_SZ128
-        LDA #<STR_MP3_SZ64
-        LDX #>STR_MP3_SZ64
-        BNE DMP_PRT_SZ
-DMP_SZ128:
         LDA #<STR_MP3_SIZE
         LDX #>STR_MP3_SIZE
-DMP_PRT_SZ:
         JSR GPU_TEXT_AX
 
         INC TEMP_IDX
@@ -1839,6 +1907,8 @@ EXIT_KEEP_AUDIO:
 ; BSRAM Sector-naar-SDRAM Kopieer-Routine ($02C0, 53 bytes)
 ; ============================================================================
 BSRAM_SRC:
+        LDA CUR_LOAD_BANK
+        STA IO_RD_BANK
         LDA LOAD_PAGE_PTR
         STA IO_RD_HI
         LDY #0
@@ -1927,15 +1997,14 @@ STR_R16K:         DB "16kHz", 0
 STR_R22K:         DB "22kHz", 0
 STR_BTN_FM:       DB "M:+FM", 0
 
-STR_TOP_BAR:      DB "MP3Commander 2.0 | Links: .MP3 (128KB/16s) | Rechts: .WAV (32KB) | Hulp-CPU", 0
-STR_MP3_HDR:      DB "LINKER PANEEL: SD .MP3 (16.4 SEC)", 0
+STR_TOP_BAR:      DB "MP3Commander 2.1 | Links: .MP3 (tot 4m!) | Rechts: .WAV (32KB) | Hulp-CPU", 0
+STR_MP3_HDR:      DB "LINKER PANEEL: SD .MP3 LIEDJES", 0
 STR_WAV_HDR1:     DB "RECHTER PANEEL: SD .WAV (PAG 1/2)", 0
 STR_WAV_HDR2:     DB "RECHTER PANEEL: SD .WAV (PAG 2/2)", 0
-STR_MP3_SIZE:     DB "128K 16s", 0
-STR_MP3_SZ64:     DB " 64K  8s", 0
-STR_WAV_SIZE:     DB " 32K  4s", 0
+STR_MP3_SIZE:     DB "00:16 MP3", 0
+STR_WAV_SIZE:     DB "00:04 WAV", 0
 STR_NOW_LBL:      DB "NU SPEELT:", 0
-STR_STAT_MP3:     DB "HULP-CPU ($A018): 128KB .MP3 (512 PAG)", 0
+STR_STAT_MP3:     DB "HULP-CPU ($A018): .MP3 STREAMING ACTIEF", 0
 STR_STAT_WAV:     DB "HULP-CPU ($A018): 32KB .WAV (128 PAG)", 0
 STR_LOADING_SD:   DB ">> LADEN VAN MICROSD NAAR SDRAM...", 0
 STR_EQ_HDR:       DB "16-BAND LIVE SPECTRUM EQUALIZER:", 0
@@ -1948,13 +2017,3 @@ STR_BTN_WAVP1:    DB "P:WAV PAG 1/2", 0
 STR_BTN_WAVP2:    DB "P:WAV PAG 2/2", 0
 STR_BTN_EXIT:     DB "ESC:SLUITEN", 0
 STR_MC_FKEYS:     DB "PIJL/TAB:Kies ENTER:Speel 1-8:Track SPATIE:Pauze S:Hz L:Album B:BgPlay ESC:Stop", 0
-
-DEFAULT_MP3_DIR:
-        DB "MP3!", "1.OUTFOXING.MP3", 0, $10, $24, 0,   2, 1, 16, 0, 0, 0, 0, 0, 0
-        DB "MP3!", "2.CALIF DREM.MP", 0, $10, $25, 0,   2, 1, 16, 0, 0, 0, 0, 0, 0
-        DB "MP3!", "3.MONDAY MON.MP", 0, $10, $26, 128, 1, 1,  8, 0, 0, 0, 0, 0, 0
-        DB "MP3!", "4.DEDICATED.MP3", 0, $90, $26, 128, 1, 1,  8, 0, 0, 0, 0, 0, 0
-        DB "MP3!", "5.DANCING ST.MP", 0, $10, $27, 128, 1, 1,  8, 0, 0, 0, 0, 0, 0
-        DB "MP3!", "6.SPAN HARLM.MP", 0, $90, $27, 128, 1, 1,  8, 0, 0, 0, 0, 0, 0
-        DB "MP3!", "7.TWIST SHT.MP3", 0, $10, $28, 128, 1, 1,  8, 0, 0, 0, 0, 0, 0
-        DB "MP3!", "8.CALL NAME.MP3", 0, $90, $28, 128, 1, 1,  8, 0, 0, 0, 0, 0, 0
