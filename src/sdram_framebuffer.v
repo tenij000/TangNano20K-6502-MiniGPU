@@ -148,7 +148,8 @@ module sdram_framebuffer (
                             lb_fetch_state <= 0; // done
                         end else begin
                             lb_fetch_col   <= lb_fetch_col + 1;
-                            lb_fetch_state <= 1; // next
+                            lb_read_req    <= 1;
+                            lb_fetch_state <= 2; // next column immediately (no bubble)
                         end
                     end
                 end
@@ -615,24 +616,8 @@ module sdram_framebuffer (
                             arb_state <= ARB_WAIT_BUSY;
                         end else if (lb_urgent) begin
                             // Hold arbiter ready for lb_read_req during second scanline half (cy[0] == 1)
-                        end else if (gpu_write_req) begin
-                            sdram_addr <= gpu_word_addr;
-                            sdram_din <= gpu_din;
-                            sdram_wstrb <= gpu_wstrb;
-                            sdram_wr <= 1;
-                            gpu_write_ack_reg <= 1;
-                            arb_next_state <= ARB_WRITE_GPU;
-                            arb_state <= ARB_WAIT_BUSY;
-                        end else if (uart_write_req) begin
-                            sdram_addr <= uart_word_addr;
-                            sdram_din <= uart_din;
-                            sdram_wstrb <= uart_wstrb;
-                            sdram_wr <= 1;
-                            uart_write_ack_reg <= 1;
-                            arb_next_state <= ARB_WRITE;
-                            arb_state <= ARB_WAIT_BUSY;
                         end else if (rd_req_sync[2] != rd_ack_toggle) begin
-                            // Upper 4 MB of SDRAM (word address bit 20 = 1)
+                            // Upper 4 MB of SDRAM (word address bit 20 = 1) - High priority for zero-jitter Audio Hulp-CPU & 6502 RAM
                             sdram_addr  <= {1'b1, rd_req_addr[21:2]};
                             rd_byte_sel <= rd_req_addr[1:0];
                             if (rd_req_we) begin
@@ -648,6 +633,22 @@ module sdram_framebuffer (
                                 sdram_rd       <= 1;
                                 arb_next_state <= ARB_READ_CPU;
                             end
+                            arb_state <= ARB_WAIT_BUSY;
+                        end else if (gpu_write_req) begin
+                            sdram_addr <= gpu_word_addr;
+                            sdram_din <= gpu_din;
+                            sdram_wstrb <= gpu_wstrb;
+                            sdram_wr <= 1;
+                            gpu_write_ack_reg <= 1;
+                            arb_next_state <= ARB_WRITE_GPU;
+                            arb_state <= ARB_WAIT_BUSY;
+                        end else if (uart_write_req) begin
+                            sdram_addr <= uart_word_addr;
+                            sdram_din <= uart_din;
+                            sdram_wstrb <= uart_wstrb;
+                            sdram_wr <= 1;
+                            uart_write_ack_reg <= 1;
+                            arb_next_state <= ARB_WRITE;
                             arb_state <= ARB_WAIT_BUSY;
                         end
                     end

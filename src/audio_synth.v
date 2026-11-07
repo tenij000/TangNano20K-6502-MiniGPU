@@ -78,9 +78,11 @@ module audio_synth (
     wire cfg_inst_pulse = cfg_we_sync[1] && !cfg_we_sync[2];
 
     // 8-Bit Unsigned PCM DAC ($A016) -> 16-Bit Signed 48 kHz 3-Pole Anti-Aliasing Interpolation Filter
-    // Scaled by 128x (-16384..+16256 = -6 dBFS headroom) so HDMI sinks & capture cards never clip!
+    // Scaled by 192x (128x + 64x = -2.5 dBFS full-bodied volume without clipping HDMI sinks!)
     wire signed [8:0]  pcm_centered = $signed({1'b0, pcm_sync1}) - 9'sd128;
-    wire signed [15:0] pcm_target   = (pcm_sync1 == 8'h80) ? 16'sd0 : $signed({pcm_centered[8], pcm_centered[7:0], 7'b0});
+    wire signed [15:0] pcm_x128     = $signed({pcm_centered[8], pcm_centered[7:0], 7'b0});
+    wire signed [15:0] pcm_x64      = $signed({{2{pcm_centered[8]}}, pcm_centered[7:0], 6'b0});
+    wire signed [15:0] pcm_target   = (pcm_sync1 == 8'h80) ? 16'sd0 : (pcm_x128 + pcm_x64);
     reg  signed [15:0] pcm_lpf1     = 16'sd0;
     reg  signed [15:0] pcm_lpf2     = 16'sd0;
     reg  signed [15:0] pcm_lpf3     = 16'sd0;
@@ -192,16 +194,31 @@ module audio_synth (
         end
     end
 
-    // --- 48 kHz Sample Clock Generator ---
-    // (48000 * 2^24) / 74250000 = 10850
-    reg [23:0] audio_clk_phase = 24'd0;
-    reg        clk_audio_prev  = 1'b0;
+    // --- Exact 48.000000 kHz Sample Clock Generator locked to 74.25 MHz ---
+    // 74,250,000 / 48,000 = 1546.875 clocks/sample (7 * 1547 + 1 * 1546 = 12,375 clocks per 8 samples)
+    // Produces exact HDMI ACR CTS = 74,250 (0.000 ppm drift) so HDMI monitors never drop audio or blank!
+    reg [10:0] sample_div  = 11'd0;
+    reg [2:0]  sample_frac = 3'd0;
+    wire [10:0] sample_period = (sample_frac == 3'd7) ? 11'd1545 : 11'd1546;
+    reg        sample_tick = 1'b0;
     always @(posedge clk_pixel) begin
-        audio_clk_phase <= audio_clk_phase + 24'd10850;
-        clk_audio       <= audio_clk_phase[23];
-        clk_audio_prev  <= clk_audio;
+        if (!rst_n) begin
+            sample_div  <= 11'd0;
+            sample_frac <= 3'd0;
+            clk_audio   <= 1'b0;
+            sample_tick <= 1'b0;
+        end else if (sample_div >= sample_period) begin
+            sample_div  <= 11'd0;
+            sample_frac <= sample_frac + 3'd1;
+            clk_audio   <= 1'b1;
+            sample_tick <= 1'b1;
+        end else begin
+            sample_div  <= sample_div + 11'd1;
+            sample_tick <= 1'b0;
+            if (sample_div == 11'd773)
+                clk_audio <= 1'b0;
+        end
     end
-    wire sample_tick = clk_audio && !clk_audio_prev;
 
     // --- 3 kHz Envelope Prescaler (48 kHz / 16 = 3,000 Hz = 0.333 ms per tick) ---
     reg [3:0] env_div  = 4'd0;

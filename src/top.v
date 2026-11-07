@@ -320,8 +320,7 @@ module top(
                             (cpu_ab >= 16'hB000 && cpu_ab < 16'hE000);
     reg  sdram_data_phase = 1'b0;
     wire adma_steal_cycle = adma_active && adma_need_byte && !adma_fetching && !rd_busy && !sdram_data_phase &&
-                            !a012_reading && !cpu_gpu_busy && !restore_bg_busy && !sd_busy && !w5500_busy &&
-                            !term_busy && !term_rx_valid_cpu;
+                            !a012_reading;
     wire cpu_rdy          = !delay_active && !pcm_wait && !cpu_gpu_busy && !restore_bg_busy && !sd_busy &&
                             !w5500_busy && !term_busy && !term_rx_valid_cpu && !rd_busy &&
                             !adma_steal_cycle && !adma_fetching;

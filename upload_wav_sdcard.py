@@ -240,10 +240,10 @@ def load_real_wav_slice(filepath, start_s, dur_s, out_len, target_rate=8000, gai
     mean_v = sum(seg) / len(seg)
     seg = [x - mean_v for x in seg]
 
-    # True Blackman-windowed Sinc low-pass anti-aliasing filter (cutoff at 0.32 * target_rate = 2560 Hz @ 8kHz)
-    # Ensures >= 3.1 samples per cycle so the FPGA 48 kHz 3-pole reconstruction filter produces pure sine waves
+    # True Blackman-windowed Sinc low-pass anti-aliasing filter (cutoff at 0.38 * target_rate = 3040 Hz @ 8kHz)
+    # Preserves crisp musical melody & vocals while preventing aliasing into the 48 kHz 3-pole reconstruction filter
     if sr > target_rate and len(seg) >= 101:
-        cutoff = (target_rate * 0.32) / float(sr)
+        cutoff = (target_rate * 0.38) / float(sr)
         n_taps = 101
         mid = n_taps // 2
         kernel = []
@@ -273,7 +273,7 @@ def load_real_wav_slice(filepath, start_s, dur_s, out_len, target_rate=8000, gai
             frac = pos - idx
             out.append(seg[idx] * (1.0 - frac) + seg[idx + 1] * frac)
 
-    # Gentle 25 Hz subsonic DC blocker (alpha=0.985) + natural ear-curve de-emphasis at 2.5-3.5 kHz
+    # Gentle 25 Hz subsonic DC blocker (alpha=0.985) + light HF smoothing
     hp = []
     prev_x = out[0]
     prev_y = 0.0
@@ -283,20 +283,46 @@ def load_real_wav_slice(filepath, start_s, dur_s, out_len, target_rate=8000, gai
         y = alpha * (prev_y + x - prev_x)
         prev_x = x
         prev_y = y
-        prev_lp = prev_lp * 0.42 + y * 0.58
+        prev_lp = prev_lp * 0.22 + y * 0.78
         hp.append(prev_lp)
 
-    peak = max(max(abs(x) for x in hp), 0.005)
-    fade = min(200, out_len // 12)
-    res = []
+    # Smooth Sliding-Window RMS Automatic Gain Control (AGC) + Soft-Knee Mastering Limiter
+    # Prevents a single transient peak in an .MP3/.WAV song from crushing quieter verses into 8-bit silence!
+    n_hp = len(hp)
+    win_half = max(64, int(target_rate * 0.20))
+    prefix_sq = [0.0] * (n_hp + 1)
+    for idx_s, val_s in enumerate(hp):
+        prefix_sq[idx_s + 1] = prefix_sq[idx_s] + val_s * val_s
+    global_rms = math.sqrt(prefix_sq[n_hp] / max(1, n_hp))
+    noise_gate = max(0.002, global_rms * 0.08)
+    target_rms = 0.42
+
+    leveled = []
+    cur_gain = 1.0
     for i, x in enumerate(hp):
+        w0 = max(0, i - win_half)
+        w1 = min(n_hp, i + win_half)
+        loc_rms = math.sqrt((prefix_sq[w1] - prefix_sq[w0]) / max(1, w1 - w0))
+        if loc_rms > noise_gate:
+            desired_g = min(6.5, max(0.4, target_rms / loc_rms))
+        else:
+            desired_g = min(2.5, target_rms / max(noise_gate, 0.005))
+        cur_gain = cur_gain * 0.995 + desired_g * 0.005
+        leveled.append(x * cur_gain)
+
+    peak = max(max(abs(x) for x in leveled), 0.005)
+    fade = min(160, out_len // 20)
+    tanh_norm = math.tanh(1.55)
+    res = []
+    for i, x in enumerate(leveled):
         env = 1.0
         if i < fade:
             env = i / float(fade)
         elif i > out_len - fade:
             env = (out_len - 1 - i) / float(fade)
-        norm = (x / peak) * 0.90 * gain * env
-        res.append(max(-0.98, min(0.98, norm)))
+        norm = (x / peak) * 1.35 * gain * env
+        soft = (math.tanh(norm * 1.55) / tanh_norm) * 0.94
+        res.append(max(-0.98, min(0.98, soft)))
     return res
 
 

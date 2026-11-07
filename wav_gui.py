@@ -818,8 +818,8 @@ class WavStudioGUI:
         )
         out = bytearray(num_samples)
         for i, x in enumerate(flt):
-            val = int(round(128.0 + x * 78.0))
-            out[i] = max(40, min(216, val))
+            val = int(round(128.0 + x * 92.0))
+            out[i] = max(28, min(228, val))
         return bytes(out), target_hz
 
     def preview_original_on_pc(self):
@@ -1053,8 +1053,8 @@ class WavStudioGUI:
                 )
                 pcm_128kb = bytearray(num_samples)
                 for i, x in enumerate(flt):
-                    val = int(round(128.0 + x * 78.0))
-                    pcm_128kb[i] = max(40, min(216, val))
+                    val = int(round(128.0 + x * 92.0))
+                    pcm_128kb[i] = max(28, min(228, val))
 
                 # 6502 SDRAM-Bank Streamer op $7E00: leest 256 pagina's (64 KB) per bank van UART naar IO_RD_DATA ($A014)
                 sdram_streamer_asm = """
