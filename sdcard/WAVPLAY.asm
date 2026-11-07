@@ -1,19 +1,27 @@
 ; ============================================================================
-; WAVPLAY.asm - MiniGPU SD-Kaart Digitale .WAV Audio Studio & Speler ($8000)
-; Speelt echte 8-bit PCM .WAV geluidsbestanden rechtstreeks van de MicroSD-kaart
-; (Sector $2000+) via het nieuwe Hardware PCM DAC Register ($A016) & Hardware
-; Sample-Rate Timer ($A017: 8 kHz / 11.025 kHz / 16 kHz / 22.05 kHz) over
-; 16-bit 48 kHz Stereo HDMI-Audio!
+; MP3PLAY.asm - MiniGPU Midnight-Commander Dual-Pane .MP3 & .WAV Speler ($8000)
+; Aangedreven door de Hardware Audio Hulp-CPU ($A018-$A01B) + 48 kHz HDMI Audio
 ;
-; Besturing (USB Muis, Alt+Pijltjes Muis of Toetsenbord):
-;   1..8 of Klik op Track   = Kies & Speel .WAV Track van SD-kaart
-;   SPATIE of [PLAY/PAUSE]  = Pauzeer / Hervat weergave
-;   LINKS / RECHTS of Klik  = Spoel terug / vooruit (Scrub op tijdbalk!)
-;   S of Klik [8k/11k/16k/22k] = Wijzig Sample Rate / Pitch live ($A017)
-;   L of Klik [LOOP]        = Eindeloos herhalen Aan/Uit
-;   M of Klik [+FM SYNTH]   = Mix 4-kanaals FM Synth Pad onder de .WAV audio!
-;   R                       = Herlaad track vers van SD-kaart
-;   Q of ESC                = Afsluiten (terug naar BASIC / MC)
+; Linker Paneel : 8 Lange .MP3 Liedjes van MicroSD (Sector $2001 / $2410+,
+;                 elk 256 sectoren = 128 KB = 512 pagina's = 16,4 sec @ 8 kHz,
+;                 gecachet in SDRAM Banken 44..59).
+; Rechter Paneel: Alle 16 .WAV Geluiden van MicroSD (Sector $2000 / $2010+,
+;                 elk 64 sectoren = 32 KB = 128 pagina's = 4,1 sec @ 8 kHz,
+;                 Pagina 1 = #1..#8, Pagina 2 = #9..#16, gecachet in Bank 28..43).
+;
+; Besturing (Toetsenbord, Joypad & USB/Alt+Pijltjes Muis):
+;   PIJL OMHOOG/OMLAAG (of W/X) = Beweeg MC-selectiebalk (muziek speelt door!)
+;   TAB of PIJL LINKS/RECHTS    = Wissel tussen Linker (.MP3) en Rechter (.WAV) paneel
+;   ENTER of 3 of Muis-Klik     = Laad & Speel geselecteerd .MP3/.WAV bestand op Hulp-CPU
+;   1..8                        = Kies & Speel direct nummer 1..8 in actief paneel
+;   SPATIE                      = Pauzeer / Hervat Audio Hulp-CPU op huidige pagina
+;   S                           = Wissel Sample Rate / Pitch live (8k/11k/16k/22k Hz)
+;   L                           = Wissel LOOP (1 nummer) <-> ALBUM (Auto-DJ volgende!)
+;   P                           = Wissel Rechter Paneel tussen WAV Pagina 1/2 en 2/2
+;   M                           = Zet 4-Kanaals Stereo FM Synth Pad Aan/Uit onder muziek
+;   R                           = Herlaad huidig bestand vers vanaf de MicroSD-kaart
+;   B                           = Sluit af naar MC/BASIC terwijl MP3 op achtergrond doorspeelt!
+;   ESC of Q                    = Stop muziek en sluit af naar MC ($9000) of BASIC
 ; ============================================================================
         ORG $8000
 
@@ -36,9 +44,12 @@ IO_RD_DATA      = $A014
 IO_RD_BANK      = $A015
 IO_PCM_DAC      = $A016
 IO_PCM_RATE     = $A017
+IO_ADMA_BANK    = $A018
+IO_ADMA_PG_L    = $A019
+IO_ADMA_PG_H    = $A01A
+IO_ADMA_CTRL    = $A01B
 IO_GPU          = $A020
 
-; ROM SD-Card ABI & Variabelen
 ZP_DST          = $1C
 DISK_FORCE_RD   = $0491
 DISK_SEC_LO     = $0496
@@ -47,13 +58,12 @@ ROM_SILENCE     = $E8DC
 ROM_SD_INIT     = $E96A
 ROM_READ_SEC    = $EA67
 
-WAV_DIR_BUF     = $7A00         ; 512B SD-kaart WAV Directory buffer ($7A00-$7BFF)
+MP3_DIR_BUF     = $7800         ; 512B SD-kaart MP3 Directory buffer (Sector $2001)
+WAV_DIR_BUF     = $7A00         ; 512B SD-kaart WAV Directory buffer (Sector $2000)
 SEC_TMP_BUF     = $0600         ; 512B Sector laad-buffer in snelle interne BSRAM ($0600-$07FF)
-BSRAM_PLAY_PAGE = $02A0         ; 33B BSRAM 256-sample playback loop (0 SDRAM instructie-fetches!)
-BSRAM_COPY_SEC  = $02C1         ; 43B BSRAM 512B sector -> SDRAM kopieer-routine
-BSRAM_EXIT      = $02EC         ; 11B BSRAM exit: LDA #1 / STA $A006 / LDA #12 / STA $A001 / RTS
+BSRAM_COPY_SEC  = $02C0         ; Snelle BSRAM 512B sector -> SDRAM kopieer-routine
 
-; Zero-Page variabelen voor WAVPLAY
+; Zero-Page variabelen ($40..$6A)
 ZP_X_LO         = $40
 ZP_X_HI         = $41
 ZP_Y_LO         = $42
@@ -66,162 +76,149 @@ ZP_COL          = $48
 ZP_PTR_LO       = $4A
 ZP_PTR_HI       = $4B
 
-CUR_MX_LO       = $50
-CUR_MX_HI       = $51
-CUR_MY_LO       = $52
-CUR_MST         = $54
+CUR_MX_LO       = $4C
+CUR_MX_HI       = $4D
+CUR_MY_LO       = $4E
+CUR_MST         = $4F
 
-CUR_TRACK       = $55           ; Huidige track index (0..5)
-IS_PLAYING      = $56           ; 1 = Speelt af, 0 = Gepauzeerd
-PLAY_PAGE       = $57           ; Huidige 256-byte pagina in SDRAM bank (0..NUM_PAGES-1)
-NUM_PAGES       = $58           ; Aantal 256-byte pagina's voor huidige track (128 = 32KB)
-CUR_RATE        = $59           ; $A017 code: 1=8kHz, 2=11kHz, 3=16kHz, 4=22kHz
-LOOP_MODE       = $5A           ; 1 = Loop aan, 0 = Stop aan einde
-FM_PAD_EN       = $5B           ; 1 = 4-Kanaals FM Synth Pad meespelen, 0 = Uit
-PEAK_AMP        = $5C           ; Gemeten piek-amplitude (0..127) van huidige pagina
-SCOPE_X_IDX     = $5D           ; Huidige oscilloscoop kolom (0..31)
-LOAD_SEC_CNT    = $5E           ; Teller tijdens laden van SD-kaart
-LOAD_PAGE_PTR   = $5F           ; Pagina-teller tijdens laden naar SDRAM
-TEMP_IDX        = $60
-DEC_TENS        = $61
-DEC_ONES        = $62
+ACTIVE_PANE     = $50           ; 0 = Linker Paneel (.MP3), 1 = Rechter Paneel (.WAV)
+SEL_MP3         = $51           ; Geselecteerde rij in Linker .MP3 paneel (0..7)
+SEL_WAV         = $52           ; Geselecteerde rij in Rechter .WAV paneel (0..7)
+WAV_PAGE        = $53           ; 0 = WAV #1..#8, 1 = WAV #9..#16
+PLAY_PANE       = $54           ; 0 = Speelt nu .MP3 (512 pag), 1 = Speelt nu .WAV (128 pag)
+PLAY_IDX        = $55           ; Index van huidig spelend nummer (0..7 voor MP3, 0..15 voor WAV)
+IS_PLAYING      = $56           ; 1 = Audio Hulp-CPU actief, 0 = Gepauzeerd
+CUR_RATE        = $57           ; Sample rate code (1=8kHz, 2=11kHz, 3=16kHz, 4=22kHz)
+ALBUM_MODE      = $58           ; 0 = Loop 1 nummer ($80|rate), 1 = Album Auto-DJ (volgende!)
+FM_PAD_EN       = $59           ; 1 = 4-Kanaals FM Synth Pad meespelen, 0 = Uit
+PLAY_START_BANK = $5A           ; Start SDRAM Bank van huidig nummer (44..58 of 28..43)
+TOTAL_PG_LO     = $5B           ; Totaal aantal pagina's low (0 voor MP3, 128 voor WAV)
+TOTAL_PG_HI     = $5C           ; Totaal aantal pagina's high (2 voor MP3 = 512, 0 voor WAV)
+PAUSE_REM_LO    = $5D           ; Resterende pagina's bij pauzeren (low)
+PAUSE_REM_HI    = $5E           ; Resterende pagina's bij pauzeren (high)
+LOAD_SEC_CNT    = $60           ; Aantal 512B sectoren nog te laden (0 = 256!)
+LOAD_PAGE_PTR   = $61           ; Huidige pagina binnen SDRAM bank (0..255)
+CUR_LOAD_BANK   = $62           ; Huidige SDRAM bank tijdens laden
+PROG_X_LO       = $63           ; Berekende voortgangsbalk breedte (0..512, low)
+PROG_X_HI       = $64           ; Berekende voortgangsbalk breedte (0..512, high)
+TEMP_IDX        = $65
+PREV_JOY        = $66
+LAST_TIMER      = $67
+EQ_PHASE        = $68
+SAMPLE_PEAK     = $69
 
 START:
-        ; Installeer 87-byte BSRAM Audio & Sector Engine op $02A0..$02F6 zodat
-        ; alle sample-loops in snelle interne FPGA Block RAM draaien (0 SDRAM instructie-fetches!)
-        LDX #86
-INIT_BSRAM_TRAMP:
-        LDA BSRAM_TRAMP_SRC,X
-        STA BSRAM_PLAY_PAGE,X
+        CLD
+        LDX #52
+INIT_BSRAM_LP:
+        LDA BSRAM_SRC,X
+        STA BSRAM_COPY_SEC,X
         DEX
-        BPL INIT_BSRAM_TRAMP
+        BPL INIT_BSRAM_LP
 
-        ; Zet 640x360 volledige grafische modus aan (verberg terminal)
         LDA #0
-        STA IO_MODE
-
-        ; Teken rechtstreeks naar zichtbare schermbuffer (TARGET 1)
-        LDA #12
-        STA IO_GPU
-        LDA #1
-        STA IO_GPU
-
-        ; Zet Hardware Muispijl AAN op (200, 140)
-        LDA #<200
-        STA IO_MOUSE_XL
-        LDA #>200
-        STA IO_MOUSE_XH
-        LDA #140
-        STA IO_MOUSE_YL
-        LDA #0
-        STA IO_MOUSE_ST
-
-        ; Zet PCM DAC op rust (128) en demp FM synth
+        STA IO_ADMA_CTRL
+        STA IO_PCM_RATE
         LDA #128
         STA IO_PCM_DAC
-        LDA #0
-        STA IO_PCM_RATE
         JSR ROM_SILENCE
+
         LDA #0
         STA IO_MODE
+        STA IO_MOUSE_XH
+        STA IO_MOUSE_ST
+        STA ACTIVE_PANE
+        STA SEL_MP3
+        STA SEL_WAV
+        STA WAV_PAGE
+        STA PLAY_PANE
+        STA PLAY_IDX
+        STA ALBUM_MODE
+        STA FM_PAD_EN
+        STA EQ_PHASE
         LDA #12
         STA IO_GPU
         LDA #1
         STA IO_GPU
-
-        ; Standaard instellingen (Start direct op Track 6 = 7.BOERDERIJ WEI!)
-        LDA #6
-        STA CUR_TRACK
-        LDA #0
-        STA PLAY_PAGE
-        STA FM_PAD_EN
-        STA SCOPE_X_IDX
-        LDA #1
-        STA LOOP_MODE
-        STA IS_PLAYING
-        LDA #1                  ; 8 kHz standaard (wordt overschreven door track-info)
         STA CUR_RATE
-        LDA #128
-        STA NUM_PAGES
+        STA IS_PLAYING
+        LDA #160
+        STA IO_MOUSE_XL
+        LDA #120
+        STA IO_MOUSE_YL
 
-        ; Wis SDRAM-cache vlaggen zodat tracks vers van SD-kaart geladen worden
-        LDX #7
+        LDX #23
         LDA #0
 CLR_CACHE_LP:
-        STA TRK_CACHED,X
+        STA MP3_CACHED,X
         DEX
         BPL CLR_CACHE_LP
 
-        ; Lees WAV-Directory van SD-kaart Sector $2000 (8192)
-        JSR READ_WAV_DIRECTORY
-
-        ; Teken volledige Studio UI
+        JSR READ_DIRECTORIES
         JSR DRAW_FULL_UI
+        JSR LOAD_AND_PLAY_SELECTED
 
-        ; Laad en start Track 0 meteen!
-        JSR SELECT_AND_LOAD_TRACK
+        LDA IO_JOY
+        STA PREV_JOY
+        LDA IO_TIMER
+        STA LAST_TIMER
 
 ; ============================================================================
-; Hoofdlus: Speelt per iteratie 1 pagina (256 samples) hardware-getimed af
-; wanneer IS_PLAYING=1, werkt VU-meter/Oscilloscoop bij en leest Muis/Toetsen!
+; Hoofdlus: Audio Hulp-CPU ($A018-$A01B) speelt de .MP3/.WAV 100% op de
+; achtergrond af; de 6502 tekent op 25 Hz de 16-staven spectrum-equalizer.
 ; ============================================================================
 MAIN_LOOP:
+        LDA IO_TIMER
+        SEC
+        SBC LAST_TIMER
+        CMP #4
+        BCC ML_CHECK_INPUT
+        LDA IO_TIMER
+        STA LAST_TIMER
+
         LDA IS_PLAYING
-        BEQ ML_IDLE_WAIT
+        BEQ ML_CHECK_INPUT
 
-        ; --- Speel 1 pagina (256 samples) uit SDRAM Bank (32 + CUR_TRACK) ---
-        LDA CUR_TRACK
-        CLC
-        ADC #32
-        STA IO_RD_BANK
-        LDA PLAY_PAGE
-        STA IO_RD_HI
-        LDA CUR_RATE
-        STA IO_PCM_RATE
+        LDA IO_ADMA_CTRL
+        BMI ML_STILL_PLAYING
 
-        ; Voer de volledige 256-sample loop uit vanuit interne BSRAM ($02A0)!
-        JSR BSRAM_PLAY_PAGE
+        ; Nummer is afgelopen! Als ALBUM_MODE = 1 -> stap naar volgend nummer!
+        LDA ALBUM_MODE
+        BEQ ML_RESTART_CUR
+        LDA PLAY_PANE
+        BNE ML_NEXT_WAV_AUTO
+        INC SEL_MP3
+        LDA SEL_MP3
+        AND #$07
+        STA SEL_MP3
+        LDA #0
+        STA ACTIVE_PANE
+        JSR LOAD_AND_PLAY_SELECTED
+        JMP ML_CHECK_INPUT
 
-        ; Verdeel Oscilloscoop, VU-meter en Progress-slice over 4 pagina's (<30us per pagina = 0% audio-stutter!)
+ML_NEXT_WAV_AUTO:
+        INC SEL_WAV
+        LDA SEL_WAV
+        CMP #8
+        BCC ML_NWA_OK
+        LDA #0
+        STA SEL_WAV
+        LDA WAV_PAGE
+        EOR #1
+        STA WAV_PAGE
+ML_NWA_OK:
+        LDA #1
+        STA ACTIVE_PANE
+        JSR LOAD_AND_PLAY_SELECTED
+        JMP ML_CHECK_INPUT
+
+ML_RESTART_CUR:
+        JSR START_HULP_CPU_FULL
+
+ML_STILL_PLAYING:
         JSR UPDATE_LIVE_VISUALS
 
-ML_ADV_PAGE:
-        INC PLAY_PAGE
-        LDA PLAY_PAGE
-        CMP NUM_PAGES
-        BCC ML_CHECK_INPUT
-
-        ; Einde van de track bereikt!
-        LDA #0
-        STA PLAY_PAGE
-        LDA LOOP_MODE
-        BNE ML_LOOP_RESTART
-
-        ; Stop aan einde als LOOP_MODE = 0
-        STA IS_PLAYING
-        STA IO_PCM_RATE
-        LDA #128
-        STA IO_PCM_DAC
-        JSR UPDATE_FM_PAD
-        JSR DRAW_TRANSPORT_BTNS
-        JSR DRAW_PROGRESS_BAR
-        JMP ML_CHECK_INPUT
-
-ML_LOOP_RESTART:
-        JSR DRAW_PROGRESS_BAR
-        JMP ML_CHECK_INPUT
-
-ML_IDLE_WAIT:
-        ; In pauze-stand: zet DAC op rust (128) en wacht 10ms
-        LDA #0
-        STA IO_PCM_RATE
-        LDA #128
-        STA IO_PCM_DAC
-        LDA #1
-        STA IO_DELAY
-
 ML_CHECK_INPUT:
-        ; 1. Controleer Hardware Muis Klik ($A00F bit 3 = click latch)
         LDA IO_MOUSE_XL
         STA CUR_MX_LO
         LDA IO_MOUSE_XH
@@ -232,357 +229,493 @@ ML_CHECK_INPUT:
         LDA IO_MOUSE_ST
         STA CUR_MST
         AND #$08
-        BEQ ML_CHECK_KEYS
+        BEQ ML_CHECK_JOY
         JSR HANDLE_MOUSE_CLICK
 
-ML_CHECK_KEYS:
-        ; 2. Controleer Toetsenbord ($A000 bit 0 = key ready, bit 7 = ESC)
+ML_CHECK_JOY:
+        LDA IO_JOY
+        STA TEMP_IDX
+        TAX
+        EOR PREV_JOY
+        AND TEMP_IDX
+        STX PREV_JOY
+        TAY
+        BEQ ML_CHECK_KEYS
+
         LDA IO_STATUS
-        BPL ML_CHK_NORM_KEY
-        LDA IO_TERM             ; Clear ESC
-        JMP EXIT_PROGRAM
-ML_CHK_NORM_KEY:
-        AND #$01
-        BNE ML_READ_KEY
+        AND #1
+        BNE ML_CHECK_KEYS
+
+        TYA
+        AND #1
+        BEQ MJ_CHK_DN
+        JSR MOVE_CURSOR_UP
+        JMP MAIN_LOOP
+MJ_CHK_DN:
+        TYA
+        AND #2
+        BEQ MJ_CHK_LT
+        JSR MOVE_CURSOR_DOWN
+        JMP MAIN_LOOP
+MJ_CHK_LT:
+        TYA
+        AND #4
+        BEQ MJ_CHK_RT
+        LDA #0
+        BEQ MJ_SET_PN
+MJ_CHK_RT:
+        TYA
+        AND #8
+        BEQ ML_CHECK_KEYS
+        LDA #1
+MJ_SET_PN:
+        STA ACTIVE_PANE
+        JSR DRAW_BOTH_PANES
         JMP MAIN_LOOP
 
-ML_READ_KEY:
+ML_CHECK_KEYS:
+        LDA IO_STATUS
+        BPL MK_CHK_READY
         LDA IO_TERM
-        CMP #27                 ; ESC
+        JMP EXIT_STOP_AUDIO
+MK_CHK_READY:
+        AND #$01
+        BNE MK_READ_KEY
+        JMP MAIN_LOOP
+
+MK_READ_KEY:
+        LDA IO_TERM
+        LDX IO_JOY
+        STX PREV_JOY
+
+        CMP #27
         BNE MK_NOT_ESC
-        JMP EXIT_PROGRAM
+        JMP EXIT_STOP_AUDIO
 MK_NOT_ESC:
+        CMP #'a'
+        BCC MK_UP_OK
+        CMP #'z'+1
+        BCS MK_UP_OK
+        AND #$DF
+MK_UP_OK:
         CMP #'Q'
-        BNE MK_NOT_Q
-        JMP EXIT_PROGRAM
-MK_NOT_Q:
-        CMP #'q'
-        BNE MK_NOT_LQ
-        JMP EXIT_PROGRAM
-MK_NOT_LQ:
-        CMP #' '                ; SPATIE = Play / Pause
+        BEQ MK_GO_EXIT
+        CMP #'0'
+        BNE MK_NOT_0
+MK_GO_EXIT:
+        JMP EXIT_STOP_AUDIO
+MK_NOT_0:
+        CMP #'B'                ; B = Sluit af maar laat MP3 op achtergrond spelen!
+        BNE MK_NOT_B
+        JMP EXIT_KEEP_AUDIO
+MK_NOT_B:
+        CMP #9                  ; TAB = Wissel paneel
+        BNE MK_NOT_TAB
+        LDA ACTIVE_PANE
+        EOR #1
+        JMP MJ_SET_PN
+MK_NOT_TAB:
+        CMP #13                 ; ENTER of '3' = Laad & Speel
+        BEQ MK_DO_PLAY_SEL
+        CMP #'3'
+        BNE MK_NOT_ENTER
+MK_DO_PLAY_SEL:
+        JSR LOAD_AND_PLAY_SELECTED
+        JMP MAIN_LOOP
+MK_NOT_ENTER:
+        CMP #' '                ; SPATIE of '4' = Pauze / Hervat
+        BEQ MK_DO_PAUSE
+        CMP #'4'
         BNE MK_NOT_SPACE
+MK_DO_PAUSE:
         JSR TOGGLE_PLAY_PAUSE
         JMP MAIN_LOOP
 MK_NOT_SPACE:
-        CMP #'B'
-        BEQ MK_DO_REW
-        CMP #'b'
-        BNE MK_NOT_B
-MK_DO_REW:
+        CMP #'W'
+        BNE MK_NOT_W
+        JSR MOVE_CURSOR_UP
+        JMP MAIN_LOOP
+MK_NOT_W:
+        CMP #'X'
+        BNE MK_NOT_X
+        JSR MOVE_CURSOR_DOWN
+        JMP MAIN_LOOP
+MK_NOT_X:
+        CMP #'A'
+        BNE MK_NOT_A
         LDA #0
-        STA PLAY_PAGE
-        JSR DRAW_PROGRESS_BAR
-        JMP MAIN_LOOP
-MK_NOT_B:
-        CMP #'L'
-        BEQ MK_DO_LOOP
-        CMP #'l'
-        BNE MK_NOT_L
-MK_DO_LOOP:
-        LDA LOOP_MODE
-        EOR #$01
-        STA LOOP_MODE
-        JSR DRAW_TRANSPORT_BTNS
-        JMP MAIN_LOOP
-MK_NOT_L:
-        CMP #'M'
-        BEQ MK_DO_FM
-        CMP #'m'
-        BNE MK_NOT_M
-MK_DO_FM:
-        LDA FM_PAD_EN
-        EOR #$01
-        STA FM_PAD_EN
-        JSR UPDATE_FM_PAD
-        JSR DRAW_TRANSPORT_BTNS
-        JMP MAIN_LOOP
-MK_NOT_M:
+        JMP MJ_SET_PN
+MK_NOT_A:
+        CMP #'D'
+        BNE MK_NOT_D
+        LDA #1
+        JMP MJ_SET_PN
+MK_NOT_D:
         CMP #'S'
-        BEQ MK_DO_RATE
-        CMP #'s'
         BNE MK_NOT_S
-MK_DO_RATE:
-        LDX CUR_RATE
-        INX
-        CPX #5
-        BCC MK_SET_RT
-        LDX #1
-MK_SET_RT:
-        STX CUR_RATE
-        JSR DRAW_RATE_BTNS
+        JSR CYCLE_SAMPLE_RATE
         JMP MAIN_LOOP
 MK_NOT_S:
+        CMP #'L'
+        BNE MK_NOT_L
+        JSR TOGGLE_ALBUM_MODE
+        JMP MAIN_LOOP
+MK_NOT_L:
+        CMP #'P'
+        BNE MK_NOT_P
+        JSR TOGGLE_WAV_PAGE
+        JMP MAIN_LOOP
+MK_NOT_P:
+        CMP #'M'
+        BNE MK_NOT_M
+        JSR TOGGLE_FM_PAD
+        JMP MAIN_LOOP
+MK_NOT_M:
+        CMP #'H'
+        BNE MK_NOT_H
+        JSR RESTART_TRACK_BEGIN
+        JMP MAIN_LOOP
+MK_NOT_H:
         CMP #'R'
-        BEQ MK_DO_RELOAD
-        CMP #'r'
-        BNE MK_NOT_R
-MK_DO_RELOAD:
-        LDX CUR_TRACK
-        LDA #0
-        STA TRK_CACHED,X
-        JSR SELECT_AND_LOAD_TRACK
-        JMP MAIN_LOOP
-MK_NOT_R:
-        ; Pijltje Links ('A' / $1C) of Rechts ('D' / $1D) = Scrub -16 / +16 pagina's
-        CMP #'A'
-        BEQ MK_SEEK_BACK
-        CMP #'a'
-        BNE MK_CHK_RIGHT
-MK_SEEK_BACK:
-        LDA PLAY_PAGE
-        SEC
-        SBC #16
-        BCS MK_SB_OK
-        LDA #0
-MK_SB_OK:
-        STA PLAY_PAGE
-        JSR DRAW_PROGRESS_BAR
-        JMP MAIN_LOOP
-
-MK_CHK_RIGHT:
-        CMP #'D'
-        BEQ MK_SEEK_FWD
-        CMP #'d'
-        BNE MK_CHK_UPDN
-MK_SEEK_FWD:
-        LDA PLAY_PAGE
-        CLC
-        ADC #16
-        CMP NUM_PAGES
-        BCC MK_SF_OK
-        LDA NUM_PAGES
-        SEC
-        SBC #1
-MK_SF_OK:
-        STA PLAY_PAGE
-        JSR DRAW_PROGRESS_BAR
-        JMP MAIN_LOOP
-
-MK_CHK_UPDN:
-        CMP #'W'
-        BEQ MK_PREV_TRK
-        CMP #'w'
-        BNE MK_CHK_DN
-MK_PREV_TRK:
-        LDA CUR_TRACK
-        BEQ MK_WRAP_LAST
-        DEC CUR_TRACK
-        JMP MK_LOAD_NEW
-MK_WRAP_LAST:
-        LDA #7
-        STA CUR_TRACK
-        JMP MK_LOAD_NEW
-
-MK_CHK_DN:
-        CMP #'S'-32             ; Fallback
-        CMP #'X'
-        BEQ MK_NEXT_TRK
-        CMP #'x'
         BNE MK_CHK_DIGITS
-MK_NEXT_TRK:
-        INC CUR_TRACK
-        LDA CUR_TRACK
-        CMP #8
-        BCC MK_LOAD_NEW
-        LDA #0
-        STA CUR_TRACK
-        JMP MK_LOAD_NEW
+        JSR INVALIDATE_SELECTED_CACHE
+        JSR LOAD_AND_PLAY_SELECTED
+        JMP MAIN_LOOP
 
 MK_CHK_DIGITS:
-        ; Toets '1'..'8' kiest direct Track 0..7!
         CMP #'1'
         BCC MK_DONE
         CMP #'9'
         BCS MK_DONE
         SEC
         SBC #'1'
-        STA CUR_TRACK
-MK_LOAD_NEW:
-        JSR SELECT_AND_LOAD_TRACK
+        LDX ACTIVE_PANE
+        BNE MK_SET_WAV_DIG
+        STA SEL_MP3
+        JMP MK_PLAY_DIG
+MK_SET_WAV_DIG:
+        STA SEL_WAV
+MK_PLAY_DIG:
+        JSR LOAD_AND_PLAY_SELECTED
 MK_DONE:
         JMP MAIN_LOOP
 
 ; ============================================================================
-; TOGGLE_PLAY_PAUSE
+; Cursor- & Knop-Acties
 ; ============================================================================
+MOVE_CURSOR_UP:
+        LDX ACTIVE_PANE
+        DEC SEL_MP3,X
+        BPL MCU_DONE
+        LDA #7
+        STA SEL_MP3,X
+MCU_DONE:
+        JMP DRAW_BOTH_PANES
+
+MOVE_CURSOR_DOWN:
+        LDX ACTIVE_PANE
+        INC SEL_MP3,X
+        LDA SEL_MP3,X
+        CMP #8
+        BCC MCD_DONE
+        LDA #0
+        STA SEL_MP3,X
+MCD_DONE:
+        JMP DRAW_BOTH_PANES
+
+TOGGLE_WAV_PAGE:
+        LDA WAV_PAGE
+        EOR #1
+        STA WAV_PAGE
+        JSR DRAW_WAV_PANE
+        JMP DRAW_TRANSPORT_BTNS
+
+TOGGLE_FM_PAD:
+        LDA FM_PAD_EN
+        EOR #1
+        STA FM_PAD_EN
+        JSR UPDATE_FM_PAD
+        JMP DRAW_RATE_BTNS
+
+RESTART_TRACK_BEGIN:
+        LDA #1
+        STA IS_PLAYING
+        JSR START_HULP_CPU_FULL
+        JMP DRAW_TRANSPORT_BTNS
+
+CYCLE_SAMPLE_RATE:
+        LDX CUR_RATE
+        INX
+        CPX #5
+        BCC CSR_OK
+        LDX #1
+CSR_OK:
+        STX CUR_RATE
+        JSR DRAW_RATE_BTNS
+        JMP APPLY_LIVE_ADMA_CHANGE
+
+TOGGLE_ALBUM_MODE:
+        LDA ALBUM_MODE
+        EOR #1
+        STA ALBUM_MODE
+        JSR DRAW_TRANSPORT_BTNS
+APPLY_LIVE_ADMA_CHANGE:
+        LDA IS_PLAYING
+        BEQ ALAC_RTS
+        LDA IO_ADMA_PG_L
+        STA PAUSE_REM_LO
+        LDA IO_ADMA_PG_H
+        STA PAUSE_REM_HI
+        JMP RESUME_HULP_CPU
+ALAC_RTS:
+        RTS
+
 TOGGLE_PLAY_PAUSE:
         LDA IS_PLAYING
-        EOR #$01
+        BEQ TPP_RESUME
+        LDA IO_ADMA_PG_L
+        STA PAUSE_REM_LO
+        LDA IO_ADMA_PG_H
+        STA PAUSE_REM_HI
+        LDA #0
+        STA IO_ADMA_CTRL
         STA IS_PLAYING
+        LDA #128
+        STA IO_PCM_DAC
         JSR UPDATE_FM_PAD
-        JSR DRAW_TRANSPORT_BTNS
+        JMP DRAW_TRANSPORT_BTNS
+TPP_RESUME:
+        LDA #1
+        STA IS_PLAYING
+        JSR RESUME_HULP_CPU
+        JSR UPDATE_FM_PAD
+        JMP DRAW_TRANSPORT_BTNS
+
+START_HULP_CPU_FULL:
+        LDA PLAY_START_BANK
+        STA IO_ADMA_BANK
+        LDA TOTAL_PG_LO
+        STA IO_ADMA_PG_L
+        STA PAUSE_REM_LO
+        LDA TOTAL_PG_HI
+        STA IO_ADMA_PG_H
+        STA PAUSE_REM_HI
+        JMP TRIGGER_ADMA_CTRL
+
+RESUME_HULP_CPU:
+        LDA PLAY_PANE
+        BNE RHC_WAV
+        LDA PAUSE_REM_HI
+        BNE RHC_MP3_B0
+        LDA PAUSE_REM_LO
+        BEQ START_HULP_CPU_FULL
+        LDX PLAY_START_BANK
+        INX
+        STX IO_ADMA_BANK
+        STA IO_ADMA_PG_L
+        LDA #0
+        STA IO_ADMA_PG_H
+        JMP TRIGGER_ADMA_CTRL
+RHC_MP3_B0:
+        LDA PLAY_START_BANK
+        STA IO_ADMA_BANK
+        LDA PAUSE_REM_LO
+        STA IO_ADMA_PG_L
+        LDA PAUSE_REM_HI
+        STA IO_ADMA_PG_H
+        JMP TRIGGER_ADMA_CTRL
+RHC_WAV:
+        LDA PLAY_START_BANK
+        STA IO_ADMA_BANK
+        LDA PAUSE_REM_LO
+        BNE RHC_W_OK
+        LDA TOTAL_PG_LO
+RHC_W_OK:
+        STA IO_ADMA_PG_L
+        LDA #0
+        STA IO_ADMA_PG_H
+
+TRIGGER_ADMA_CTRL:
+        LDA CUR_RATE
+        LDX ALBUM_MODE
+        BNE TAC_NO_LOOP
+        ORA #$80
+TAC_NO_LOOP:
+        STA IO_ADMA_CTRL
+        RTS
+
+INVALIDATE_SELECTED_CACHE:
+        LDA ACTIVE_PANE
+        BNE ISC_WAV
+        LDX SEL_MP3
+        LDA #0
+        STA MP3_CACHED,X
+        RTS
+ISC_WAV:
+        LDA WAV_PAGE
+        ASL A
+        ASL A
+        ASL A
+        CLC
+        ADC SEL_WAV
+        TAX
+        LDA #0
+        STA WAV_CACHED,X
         RTS
 
 ; ============================================================================
-; HANDLE_MOUSE_CLICK: Verwerk klik op Playlist, Rate-knoppen, Scrub-balk & Transport
+; HANDLE_MOUSE_CLICK
 ; ============================================================================
 HANDLE_MOUSE_CLICK:
-        ; 1. Klik in Playlist-paneel? (X = 16..276, Y = 66..241, 22px per rij voor 8 tracks)
-        LDA CUR_MX_HI
-        BNE HMC_CHK_RIGHT_PNL
-        LDA CUR_MX_LO
-        CMP #16
-        BCC HMC_CHK_BOTTOM
         LDA CUR_MY_LO
-        CMP #66
-        BCC HMC_CHK_BOTTOM
-        CMP #242
-        BCS HMC_CHK_BOTTOM
-        SEC
-        SBC #66
-        LDX #0
-HMC_DIV28:
         CMP #22
-        BCC HMC_GOT_TRK
-        SBC #22
+        BCC HMC_RET
+        CMP #42
+        BCC HMC_PANE_HDR_CLICK
+        CMP #210
+        BCS HMC_CHK_RATE_ROW
+
+        SEC
+        SBC #42
+        LDX #0
+HMC_DIV21:
+        CMP #21
+        BCC HMC_GOT_ROW
+        SBC #21
         INX
         CPX #7
-        BCC HMC_DIV28
-HMC_GOT_TRK:
-        STX CUR_TRACK
-        JSR SELECT_AND_LOAD_TRACK
+        BCC HMC_DIV21
+HMC_GOT_ROW:
+        LDA CUR_MX_HI
+        BEQ HMC_LEFT_CLICK
+        CMP #1
+        BNE HMC_RIGHT_CLICK
+        LDA CUR_MX_LO
+        CMP #<320
+        BCS HMC_RIGHT_CLICK
+HMC_LEFT_CLICK:
+        LDA #0
+        STA ACTIVE_PANE
+        STX SEL_MP3
+        JMP LOAD_AND_PLAY_SELECTED
+HMC_RIGHT_CLICK:
+        LDA #1
+        STA ACTIVE_PANE
+        STX SEL_WAV
+        JMP LOAD_AND_PLAY_SELECTED
+
+HMC_PANE_HDR_CLICK:
+        LDA CUR_MX_HI
+        BEQ HMC_RET
+        JMP TOGGLE_WAV_PAGE
+HMC_RET:
         RTS
 
-HMC_CHK_RIGHT_PNL:
-        ; 2. Klik op Sample Rate knoppen? (Y = 216..242, X = 300..612)
-        LDA CUR_MY_LO
-        CMP #214
-        BCC HMC_CHK_BOTTOM
-        CMP #244
-        BCS HMC_CHK_BOTTOM
-        ; Bereken welke van de 4 rate-knoppen:
-        ; X < 376 -> Rate 1 (8k), X < 456 -> Rate 2 (11k), X < 536 -> Rate 3 (16k), anders Rate 4 (22k)
+HMC_CHK_RATE_ROW:
+        CMP #252
+        BCC HMC_RET
+        CMP #280
+        BCS HMC_CHK_TRANS_ROW
         LDA CUR_MX_HI
-        CMP #1
-        BNE HMC_RATE_HI2
+        BNE HMC_RATE_HI1
         LDA CUR_MX_LO
-        CMP #<376
+        CMP #70
         BCC HMC_SET_R1
-        CMP #<456
+        CMP #126
         BCC HMC_SET_R2
-        JMP HMC_SET_R3
-HMC_RATE_HI2:
-        LDA CUR_MX_LO
-        CMP #<536
+        CMP #182
         BCC HMC_SET_R3
-        LDA #4
-        JMP HMC_APPLY_RATE
+        CMP #238
+        BCC HMC_SET_R4
+        JMP TOGGLE_FM_PAD
+HMC_RATE_HI1:
+        LDA CUR_MX_LO
+        CMP #<316
+        BCS HMC_RET
+        JMP TOGGLE_FM_PAD
 HMC_SET_R1:
         LDA #1
-        JMP HMC_APPLY_RATE
+        BNE HMC_APPLY_RT
 HMC_SET_R2:
         LDA #2
-        JMP HMC_APPLY_RATE
+        BNE HMC_APPLY_RT
 HMC_SET_R3:
         LDA #3
-HMC_APPLY_RATE:
+        BNE HMC_APPLY_RT
+HMC_SET_R4:
+        LDA #4
+HMC_APPLY_RT:
         STA CUR_RATE
         JSR DRAW_RATE_BTNS
-        RTS
+        JMP APPLY_LIVE_ADMA_CHANGE
 
-HMC_CHK_BOTTOM:
-        ; 3. Klik op Scrubbing Voortgangsbalk? (Y = 264..290, X = 32..543)
-        LDA CUR_MY_LO
-        CMP #264
-        BCC HMC_CHK_TRANS
-        CMP #291
-        BCS HMC_CHK_TRANS
-        ; PLAY_PAGE = ((MX - 32) >> 2), begrensd op 0..NUM_PAGES-1
-        LDA CUR_MX_LO
-        SEC
-        SBC #32
-        STA ZP_X_LO
-        LDA CUR_MX_HI
-        SBC #0
-        BMI HMC_SCRUB_ZERO
-        STA ZP_X_HI
-        LSR ZP_X_HI
-        ROR ZP_X_LO
-        LSR ZP_X_HI
-        ROR ZP_X_LO
-        LDA ZP_X_LO
-        CMP NUM_PAGES
-        BCC HMC_SCRUB_SET
-        LDA NUM_PAGES
-        SEC
-        SBC #1
-        JMP HMC_SCRUB_SET
-HMC_SCRUB_ZERO:
-        LDA #0
-HMC_SCRUB_SET:
-        STA PLAY_PAGE
-        LDA #1
-        STA IS_PLAYING
-        JSR UPDATE_FM_PAD
-        JSR DRAW_TRANSPORT_BTNS
-        JSR DRAW_PROGRESS_BAR
-        RTS
-
-HMC_CHK_TRANS:
-        ; 4. Klik op Transport-knoppen onderaan? (Y = 296..328)
-        LDA CUR_MY_LO
-        CMP #296
-        BCC HMC_DONE
-        CMP #330
-        BCS HMC_DONE
-
-        ; Knop 1: [PLAY/PAUSE] (X = 32..168)
-        ; Knop 2: [BEGIN]      (X = 180..284)
-        ; Knop 3: [LOOP]       (X = 296..436)
-        ; Knop 4: [+FM SYNTH]  (X = 448..540)
-        ; Knop 5: [STOP/EXIT]  (X = 548..616)
+HMC_CHK_TRANS_ROW:
+        CMP #<306
+        BCC HMC_RET
+        CMP #<338
+        BCS HMC_RET
         LDA CUR_MX_HI
         BNE HMC_TR_HI1
         LDA CUR_MX_LO
-        CMP #172
-        BCC HMC_BTN_PLAY
-        JMP HMC_BTN_BEGIN
+        CMP #140
+        BCC HMC_DO_PLAY
+        CMP #248
+        BCC HMC_DO_BEGIN
+        JMP TOGGLE_ALBUM_MODE
 HMC_TR_HI1:
         CMP #1
-        BNE HMC_TR_HI2
+        BNE HMC_DO_QUIT
         LDA CUR_MX_LO
-        CMP #<290
-        BCC HMC_BTN_BEGIN
-        CMP #<442
-        BCC HMC_BTN_LOOP
-        JMP HMC_BTN_FM
-HMC_TR_HI2:
-        LDA CUR_MX_LO
-        CMP #<544
-        BCC HMC_BTN_FM
-        PLA                     ; Pop JSR return adres en sluit netjes af!
+        CMP #<384
+        BCC HMC_DO_ALBUM
+        CMP #<516
+        BCC HMC_DO_WAVPG
+HMC_DO_QUIT:
         PLA
-        JMP EXIT_PROGRAM
-
-HMC_BTN_PLAY:
+        PLA
+        JMP EXIT_STOP_AUDIO
+HMC_DO_PLAY:
         JMP TOGGLE_PLAY_PAUSE
-HMC_BTN_BEGIN:
-        LDA #0
-        STA PLAY_PAGE
-        JMP DRAW_PROGRESS_BAR
-HMC_BTN_LOOP:
-        LDA LOOP_MODE
-        EOR #$01
-        STA LOOP_MODE
-        JMP DRAW_TRANSPORT_BTNS
-HMC_BTN_FM:
-        LDA FM_PAD_EN
-        EOR #$01
-        STA FM_PAD_EN
-        JSR UPDATE_FM_PAD
-        JMP DRAW_TRANSPORT_BTNS
-HMC_DONE:
-        RTS
+HMC_DO_BEGIN:
+        JMP RESTART_TRACK_BEGIN
+HMC_DO_ALBUM:
+        JMP TOGGLE_ALBUM_MODE
+HMC_DO_WAVPG:
+        JMP TOGGLE_WAV_PAGE
 
 ; ============================================================================
-; READ_WAV_DIRECTORY: Lees Sector $2000 (8192) van SD-kaart naar $0500
-; Als Sector $2000 nog geen "WAV!" header heeft, kopieer standaard tabel.
+; READ_DIRECTORIES: Sector $2001 (MP3_DIR_BUF) en Sector $2000 (WAV_DIR_BUF)
 ; ============================================================================
-READ_WAV_DIRECTORY:
+READ_DIRECTORIES:
         LDA #0
         STA DISK_FORCE_RD
         JSR ROM_SD_INIT
+
+        LDA #$01
+        STA DISK_SEC_LO
+        LDA #$20
+        STA DISK_SEC_HI
+        LDA #<MP3_DIR_BUF
+        STA ZP_DST
+        LDA #>MP3_DIR_BUF
+        STA ZP_DST+1
+        JSR ROM_READ_SEC
+
+        LDA MP3_DIR_BUF
+        CMP #'M'
+        BNE RD_MP3_FALLBACK
+        LDA MP3_DIR_BUF+1
+        CMP #'P'
+        BEQ RD_READ_WAV
+RD_MP3_FALLBACK:
+        LDX #0
+RD_MFB_LP:
+        LDA DEFAULT_MP3_DIR,X
+        STA MP3_DIR_BUF,X
+        INX
+        BNE RD_MFB_LP
+
+RD_READ_WAV:
         LDA #$00
         STA DISK_SEC_LO
         LDA #$20
@@ -591,365 +724,432 @@ READ_WAV_DIRECTORY:
         STA ZP_DST
         LDA #>WAV_DIR_BUF
         STA ZP_DST+1
-        JSR ROM_READ_SEC
-
-        ; Controleer of eerste én zevende entry beginnen met "WAV!"
-        LDA WAV_DIR_BUF
-        CMP #'W'
-        BNE RWD_FALLBACK
-        LDA WAV_DIR_BUF+192
-        CMP #'W'
-        BNE RWD_FALLBACK
-        RTS
-
-RWD_FALLBACK:
-        ; Kopieer ingebouwde standaard WAV-directory (8x32 = 256 bytes) naar WAV_DIR_BUF
-        LDX #0
-RWD_FB_LP:
-        LDA DEFAULT_WAV_DIR,X
-        STA WAV_DIR_BUF,X
-        INX
-        BNE RWD_FB_LP
-        RTS
+        JMP ROM_READ_SEC
 
 ; ============================================================================
-; SELECT_AND_LOAD_TRACK: Haal metadata voor CUR_TRACK op, laad sectoren van
-; SD-kaart naar SDRAM Bank (32 + CUR_TRACK) indien nog niet gecachet, en start!
+; LOAD_AND_PLAY_SELECTED
 ; ============================================================================
-SELECT_AND_LOAD_TRACK:
-        ; Demp PCM tijdens wisselen
+LOAD_AND_PLAY_SELECTED:
         LDA #0
+        STA IO_ADMA_CTRL
         STA IO_PCM_RATE
         LDA #128
         STA IO_PCM_DAC
 
-        ; Bereken pointer naar WAV_DIR_BUF + CUR_TRACK * 32 -> ZP_PTR
-        LDA CUR_TRACK
-        ASL A
-        ASL A
-        ASL A
-        ASL A
-        ASL A
-        STA ZP_PTR_LO
-        LDA #>WAV_DIR_BUF
-        STA ZP_PTR_HI
+        LDA ACTIVE_PANE
+        STA PLAY_PANE
+        BNE LAPS_SETUP_WAV
 
-        ; Haal NUM_PAGES (+23) en CUR_RATE (+24) op uit directory-entry
-        LDY #23
+        LDA SEL_MP3
+        STA PLAY_IDX
+        ASL A
+        CLC
+        ADC #44
+        STA PLAY_START_BANK
+        STA CUR_LOAD_BANK
+
+        JSR SET_MP3_DIR_PTR
+        LDY #22
         LDA (ZP_PTR_LO),Y
-        BNE SLT_PG_OK
-        LDA #128
-SLT_PG_OK:
-        STA NUM_PAGES
+        STA LOAD_SEC_CNT
         INY
         LDA (ZP_PTR_LO),Y
-        BNE SLT_RT_OK
+        BNE LAPS_MP3_HI_OK
+        LDA #2
+LAPS_MP3_HI_OK:
+        STA TOTAL_PG_HI
+        LDA #0
+        STA TOTAL_PG_LO
         LDA #1
-SLT_RT_OK:
         STA CUR_RATE
 
-        ; Herteken Playlist-selectie en Rate-knoppen
-        JSR DRAW_PLAYLIST
-        JSR DRAW_RATE_BTNS
+        JSR DRAW_BOTH_PANES
         JSR DRAW_NOW_PLAYING
+        JSR DRAW_RATE_BTNS
 
-        ; Controleer of deze track al in SDRAM Bank (32 + CUR_TRACK) staat
-        LDX CUR_TRACK
-        LDA TRK_CACHED,X
-        BNE SLT_READY
+        LDX SEL_MP3
+        LDA MP3_CACHED,X
+        BNE LAPS_START_READY
 
-        ; --- Laad Track Sectoren van SD-kaart naar SDRAM Bank (32 + CUR_TRACK) ---
-        ; Bereken opnieuw ZP_PTR = WAV_DIR_BUF + CUR_TRACK * 32
-        LDA CUR_TRACK
-        ASL A
-        ASL A
-        ASL A
-        ASL A
-        ASL A
-        STA ZP_PTR_LO
-        LDA #>WAV_DIR_BUF
-        STA ZP_PTR_HI
-
+        JSR SET_MP3_DIR_PTR
         LDY #20
         LDA (ZP_PTR_LO),Y
         STA DISK_SEC_LO
         INY
         LDA (ZP_PTR_LO),Y
         STA DISK_SEC_HI
-        INY
-        LDA (ZP_PTR_LO),Y       ; Aantal 512B sectoren (bijv. 64 = 32KB)
-        BNE SLT_SEC_OK
-        LDA #64
-SLT_SEC_OK:
-        STA LOAD_SEC_CNT
-        LDA #0
-        STA LOAD_PAGE_PTR
 
-        ; Controleer of SD-kaart aanwezig is; zo ja, lees sectoren!
+        JSR STREAM_SECTORS_FROM_SD
+        LDX SEL_MP3
+        LDA #1
+        STA MP3_CACHED,X
+        BNE LAPS_START_READY
+
+LAPS_SETUP_WAV:
+        LDA WAV_PAGE
+        ASL A
+        ASL A
+        ASL A
+        CLC
+        ADC SEL_WAV
+        STA PLAY_IDX
+        CLC
+        ADC #28
+        STA PLAY_START_BANK
+        STA CUR_LOAD_BANK
+
+        JSR SET_WAV_DIR_PTR
+        LDY #23
+        LDA (ZP_PTR_LO),Y
+        BNE LAPS_WPG_OK
+        LDA #128
+LAPS_WPG_OK:
+        STA TOTAL_PG_LO
+        LDA #0
+        STA TOTAL_PG_HI
+        INY
+        LDA (ZP_PTR_LO),Y
+        BNE LAPS_WRT_OK
+        LDA #1
+LAPS_WRT_OK:
+        STA CUR_RATE
+
+        JSR DRAW_BOTH_PANES
+        JSR DRAW_NOW_PLAYING
+        JSR DRAW_RATE_BTNS
+
+        LDX PLAY_IDX
+        LDA WAV_CACHED,X
+        BNE LAPS_START_READY
+
+        JSR SET_WAV_DIR_PTR
+        LDY #20
+        LDA (ZP_PTR_LO),Y
+        STA DISK_SEC_LO
+        INY
+        LDA (ZP_PTR_LO),Y
+        STA DISK_SEC_HI
+        LDA #64
+        STA LOAD_SEC_CNT
+
+        JSR STREAM_SECTORS_FROM_SD
+        LDX PLAY_IDX
+        LDA #1
+        STA WAV_CACHED,X
+
+LAPS_START_READY:
+        LDA #1
+        STA IS_PLAYING
+        JSR START_HULP_CPU_FULL
+        JSR UPDATE_FM_PAD
+        JSR DRAW_NOW_PLAYING
+        JMP DRAW_TRANSPORT_BTNS
+
+SET_MP3_DIR_PTR:
+        LDA PLAY_IDX
+        ASL A
+        ASL A
+        ASL A
+        ASL A
+        ASL A
+        STA ZP_PTR_LO
+        LDA #>MP3_DIR_BUF
+        STA ZP_PTR_HI
+        RTS
+
+SET_WAV_DIR_PTR:
+        LDA PLAY_IDX
+        ASL A
+        ASL A
+        ASL A
+        ASL A
+        ASL A
+        STA ZP_PTR_LO
+        LDA #>WAV_DIR_BUF
+        ADC #0
+        STA ZP_PTR_HI
+        RTS
+
+; ============================================================================
+; STREAM_SECTORS_FROM_SD
+; ============================================================================
+STREAM_SECTORS_FROM_SD:
+        LDX #80                 ; Box 10: Wis statusregel
+        JSR DRAW_BOX_FROM_TBL
+        LDA #18
+        LDX #0
+        LDY #240
+        JSR SET_XY
+        LDA #$FC
+        STA ZP_COL
+        LDA #<STR_LOADING_SD
+        LDX #>STR_LOADING_SD
+        JSR GPU_TEXT_AX
+
+        LDX #88                 ; Box 11: Wis voortgangsbalk naar zwart
+        JSR DRAW_BOX_FROM_TBL
+
         LDA #0
         STA DISK_FORCE_RD
-        STA PLAY_PAGE
-        JSR DRAW_PROGRESS_BAR
+        STA LOAD_PAGE_PTR
+        STA PROG_X_LO
+        STA PROG_X_HI
         JSR ROM_SD_INIT
-        LDA CUR_TRACK
-        CLC
-        ADC #32
+        LDA CUR_LOAD_BANK
         STA IO_RD_BANK
 
-SLT_SECTOR_LP:
-        ; Lees 1 sector (512 bytes) van SD-kaart naar SEC_TMP_BUF ($0600-$07FF in BSRAM!)
+SSFS_LP:
         LDA #<SEC_TMP_BUF
         STA ZP_DST
         LDA #>SEC_TMP_BUF
         STA ZP_DST+1
         JSR ROM_READ_SEC
-
-        ; Kopieer 512 bytes ($0600-$07FF) vanuit BSRAM ($02C1) naar SDRAM Bank (32 + CUR_TRACK)!
         JSR BSRAM_COPY_SEC
 
-        ; Teken een 16x16px laad-blokje op de progress bar elke 2 sectoren (4 pagina's)
-        LDA LOAD_PAGE_PTR
-        SEC
-        SBC #2
-        STA PLAY_PAGE
-        JSR ULV_PHASE3_PROG
-
-        DEC LOAD_SEC_CNT
-        BNE SLT_SECTOR_LP
-
-        ; Markeer track als geladen in SDRAM!
-        LDX CUR_TRACK
-        LDA #1
-        STA TRK_CACHED,X
-
-SLT_READY:
-        LDA #0
-        STA PLAY_PAGE
-        LDA #1
-        STA IS_PLAYING
-        JSR UPDATE_FM_PAD
-        JSR DRAW_TRANSPORT_BTNS
-        JSR DRAW_PROGRESS_BAR
-        RTS
-
-; ============================================================================
-; UPDATE_LIVE_VISUALS: Tekent live Oscilloscoop-kolom & Stereo VU-Meters
-; ============================================================================
-UPDATE_LIVE_VISUALS:
-        LDA PLAY_PAGE
+        LDA LOAD_SEC_CNT
         AND #$03
-        BEQ ULV_PHASE0_SCOPE
-        CMP #1
-        BEQ ULV_PHASE1_VUL
-        CMP #2
-        BNE ULV_GO_PHASE3
-        JMP ULV_PHASE2_VUR
-ULV_GO_PHASE3:
-        JMP ULV_PHASE3_PROG
-
-ULV_PHASE0_SCOPE:
-        ; Fase 0: Teken 1 Oscilloscoop-kolom (32 kolommen van 8px op X=312..567, H=64)
-        LDA SCOPE_X_IDX
-        AND #$1F
-        ASL A
-        ASL A
-        ASL A
+        BNE SSFS_NEXT
+        LDA #32
         CLC
-        ADC #<312
+        ADC PROG_X_LO
         STA ZP_X_LO
-        LDA #>312
-        ADC #0
-        STA ZP_X_HI
-
-        LDA #78
-        STA ZP_Y_LO
         LDA #0
+        ADC PROG_X_HI
+        STA ZP_X_HI
+        LDA #<286
+        STA ZP_Y_LO
+        LDA #>286
         STA ZP_Y_HI
-        LDA #6
+        LDA #8
         STA ZP_W_LO
         LDA #0
         STA ZP_W_HI
-        LDA #64
+        LDA #12
+        STA ZP_H_LO
+        LDA #$1F
+        STA ZP_COL
+        JSR GPU_RECT
+
+        LDA PLAY_PANE
+        BNE SSFS_ADV32
+        LDA TOTAL_PG_HI
+        CMP #1
+        BEQ SSFS_ADV16
+        LDA #8
+        BNE SSFS_ADD_PX
+SSFS_ADV16:
+        LDA #16
+        BNE SSFS_ADD_PX
+SSFS_ADV32:
+        LDA #32
+SSFS_ADD_PX:
+        CLC
+        ADC PROG_X_LO
+        STA PROG_X_LO
+        BCC SSFS_NEXT
+        INC PROG_X_HI
+SSFS_NEXT:
+        DEC LOAD_SEC_CNT
+        BNE SSFS_LP
+        RTS
+
+; ============================================================================
+; UPDATE_LIVE_VISUALS: 16-Band Spectrum Equalizer & Voortgangsbalk
+; ============================================================================
+UPDATE_LIVE_VISUALS:
+        LDA TOTAL_PG_LO
+        SEC
+        SBC IO_ADMA_PG_L
+        STA PROG_X_LO
+        LDA TOTAL_PG_HI
+        SBC IO_ADMA_PG_H
+        BPL ULV_PG_POS
+        LDA #0
+        STA PROG_X_LO
+ULV_PG_POS:
+        AND #$01
+        STA PROG_X_HI
+
+        LDA PLAY_START_BANK
+        CLC
+        ADC PROG_X_HI
+        STA IO_RD_BANK
+        LDA PROG_X_LO
+        STA IO_RD_HI
+
+        LDA PLAY_PANE
+        BNE ULV_SCALE_WAV
+        LDA TOTAL_PG_HI
+        CMP #1
+        BNE ULV_DRAW_PBAR
+        ASL PROG_X_LO
+        ROL PROG_X_HI
+        JMP ULV_DRAW_PBAR
+ULV_SCALE_WAV:
+        ASL PROG_X_LO
+        ROL PROG_X_HI
+        ASL PROG_X_LO
+        ROL PROG_X_HI
+
+ULV_DRAW_PBAR:
+        LDA PROG_X_HI
+        CMP #2
+        BCC ULV_PB_OK
+        LDA #2
+        STA PROG_X_HI
+        LDA #0
+        STA PROG_X_LO
+ULV_PB_OK:
+        LDA #<286
+        STA ZP_Y_LO
+        LDA #>286
+        STA ZP_Y_HI
+        LDA #12
+        STA ZP_H_LO
+
+        LDA PROG_X_LO
+        ORA PROG_X_HI
+        BEQ ULV_PB_RIGHT
+        LDA #32
+        STA ZP_X_LO
+        LDA #0
+        STA ZP_X_HI
+        LDA PROG_X_LO
+        STA ZP_W_LO
+        LDA PROG_X_HI
+        STA ZP_W_HI
+        LDA #$1C
+        STA ZP_COL
+        JSR GPU_RECT
+
+ULV_PB_RIGHT:
+        LDA #0
+        SEC
+        SBC PROG_X_LO
+        STA ZP_W_LO
+        LDA #2
+        SBC PROG_X_HI
+        STA ZP_W_HI
+        ORA ZP_W_LO
+        BEQ ULV_DRAW_EQ
+        LDA #32
+        CLC
+        ADC PROG_X_LO
+        STA ZP_X_LO
+        LDA #0
+        ADC PROG_X_HI
+        STA ZP_X_HI
+        LDA #$00
+        STA ZP_COL
+        JSR GPU_RECT
+
+ULV_DRAW_EQ:
+        INC EQ_PHASE
+        LDX #0
+ULV_EQ_LP:
+        STX TEMP_IDX
+        TXA
+        ASL A
+        ASL A
+        ASL A
+        ASL A
+        EOR EQ_PHASE
+        STA IO_RD_LO
+        LDA IO_RD_DATA
+        SEC
+        SBC #128
+        BPL ULV_ABS_OK
+        EOR #$FF
+        CLC
+        ADC #1
+ULV_ABS_OK:
+        LSR A
+        CLC
+        ADC #4
+        CMP #38
+        BCC ULV_H_OK
+        LDA #38
+ULV_H_OK:
+        STA SAMPLE_PEAK
+
+        LDX TEMP_IDX
+        LDA EQ_BAR_XL,X
+        STA ZP_X_LO
+        LDA EQ_BAR_XH,X
+        STA ZP_X_HI
+        LDA #13
+        STA ZP_W_LO
+        LDA #0
+        STA ZP_W_HI
+        STA ZP_Y_HI
+
+        LDA #238
+        STA ZP_Y_LO
+        LDA #40
+        SEC
+        SBC SAMPLE_PEAK
         STA ZP_H_LO
         LDA #$01
         STA ZP_COL
         JSR GPU_RECT
 
-        LDA PEAK_AMP
-        LSR A
-        CLC
-        ADC #2
-        CMP #32
-        BCC ULV_H_OK
-        LDA #32
-ULV_H_OK:
-        STA TEMP_IDX            ; Halve hoogte (2..32)
-        LDA #110
+        LDA #278
         SEC
-        SBC TEMP_IDX
+        SBC SAMPLE_PEAK
         STA ZP_Y_LO
-        LDA TEMP_IDX
-        ASL A
+        LDA SAMPLE_PEAK
         STA ZP_H_LO
-
-        LDA #$1C
         LDX TEMP_IDX
-        CPX #16
-        BCC ULV_COL_OK
-        LDA #$FC
-        CPX #24
-        BCC ULV_COL_OK
-        LDA #$E8
-ULV_COL_OK:
+        LDA EQ_BAR_COL,X
         STA ZP_COL
         JSR GPU_RECT
-        INC SCOPE_X_IDX
+
+        LDX TEMP_IDX
+        INX
+        CPX #16
+        BCC ULV_EQ_LP
         RTS
 
-ULV_PHASE1_VUL:
-        ; Fase 1: Linker VU-balk (Y=173, H=6, X=328..567) zonder overlap!
-        LDA #173
-        STA ZP_Y_LO
-        LDA #$1C
-        JMP ULV_DRAW_ONE_VU
-
-ULV_PHASE2_VUR:
-        ; Fase 2: Rechter VU-balk (Y=189, H=6, X=328..567) zonder overlap!
-        LDA #189
-        STA ZP_Y_LO
-        LDA #$1F
-
-ULV_DRAW_ONE_VU:
-        STA ZP_COL
-        LDA #0
-        STA ZP_Y_HI
-        STA ZP_W_HI
-        LDA #6
-        STA ZP_H_LO
-
-        LDA PEAK_AMP
-        ASL A
-        BNE ULV_VU_NZ
-        LDA #2
-ULV_VU_NZ:
-        CMP #238
-        BCC ULV_VU_OK
-        LDA #238
-ULV_VU_OK:
-        STA TEMP_IDX            ; Gevulde breedte (2..238)
-        CMP #160
-        BCC ULV_VU_C_OK
-        LDA #$FC                ; Geel bij piek
-        STA ZP_COL
-ULV_VU_C_OK:
-        LDA #<328
-        STA ZP_X_LO
-        LDA #>328
-        STA ZP_X_HI
-        LDA TEMP_IDX
-        STA ZP_W_LO
-        JSR GPU_RECT
-
-        ; Wis alleen het resterende rechterdeel (240 - TEMP_IDX) in zwart ($00)
-        LDA #<328
-        CLC
-        ADC TEMP_IDX
-        STA ZP_X_LO
-        LDA #>328
-        ADC #0
-        STA ZP_X_HI
-        LDA #240
-        SEC
-        SBC TEMP_IDX
-        STA ZP_W_LO
-        LDA #$00
-        STA ZP_COL
-        JMP GPU_RECT
-
-ULV_PHASE3_PROG:
-        ; Fase 3: Teken incrementeel blokje (16x16 px) op de Progress-Balk!
-        LDA PLAY_PAGE
-        AND #$FC
-        STA ZP_X_LO
-        LDA #0
-        STA ZP_X_HI
-        ASL ZP_X_LO
-        ROL ZP_X_HI
-        ASL ZP_X_LO
-        ROL ZP_X_HI
-        LDA ZP_X_LO
-        CLC
-        ADC #32
-        STA ZP_X_LO
-        LDA ZP_X_HI
-        ADC #0
-        STA ZP_X_HI
-        LDA #<268
-        STA ZP_Y_LO
-        LDA #>268
-        STA ZP_Y_HI
-        LDA #16
-        STA ZP_W_LO
-        LDA #0
-        STA ZP_W_HI
-        LDA #16
-        STA ZP_H_LO
-        LDA #$1F
-        STA ZP_COL
-        JMP GPU_RECT
-
-
 ; ============================================================================
-; UPDATE_FM_PAD: Zet 4-kanaals FM Strings/Pad akkoord AAN of UIT onder de .WAV!
+; UPDATE_FM_PAD
 ; ============================================================================
 UPDATE_FM_PAD:
         LDA FM_PAD_EN
         BEQ UFP_OFF
         LDA IS_PLAYING
         BEQ UFP_OFF
-
-        ; Kies Strijkers/Strings (Instrument 2) met Stereo Chorus
         LDA #2
         STA IO_SYNTH_INST
         LDA #7
         STA IO_SYNTH_FX
-
-        ; CH0: A2 (110 Hz -> phase_inc = 38448 = $009630), vol = 95
         LDX #0
         LDA #$30
         LDY #$96
         JSR SET_FM_CH
-        ; CH1: E3 (165 Hz -> phase_inc = 57672 = $00E148), vol = 85
         LDX #1
         LDA #$48
         LDY #$E1
         JSR SET_FM_CH
-        ; CH2: C#4 (277 Hz -> phase_inc = 96818 = $017A32), vol = 80
-        LDA #16
-        STA IO_GPU
-        LDA #2
-        STA IO_GPU
+        LDX #2
         LDA #$32
-        STA IO_GPU
-        LDA #$7A
-        STA IO_GPU
-        LDA #$01
-        STA IO_GPU
-        LDA #80
-        STA IO_GPU
-        RTS
-
+        LDY #$7A
+        JMP SET_FM_CH
 UFP_OFF:
         LDX #0
-        LDA #0
-        LDY #0
-        JSR SET_FM_CH_SILENT
+        JSR SET_FM_SILENT
         LDX #1
-        JSR SET_FM_CH_SILENT
+        JSR SET_FM_SILENT
         LDX #2
-        JSR SET_FM_CH_SILENT
+SET_FM_SILENT:
+        LDA #16
+        STA IO_GPU
+        STX IO_GPU
+        LDA #0
+        STA IO_GPU
+        STA IO_GPU
+        STA IO_GPU
+        STA IO_GPU
         RTS
-
 SET_FM_CH:
         PHA
         LDA #16
@@ -960,251 +1160,180 @@ SET_FM_CH:
         STY IO_GPU
         LDA #0
         STA IO_GPU
-        LDA #90
-        STA IO_GPU
-        RTS
-
-SET_FM_CH_SILENT:
-        LDA #16
-        STA IO_GPU
-        STX IO_GPU
-        LDA #0
-        STA IO_GPU
-        STA IO_GPU
-        STA IO_GPU
+        LDA #75
         STA IO_GPU
         RTS
 
 ; ============================================================================
-; UI Tekenroutines (640x360 Grafische WAV Studio)
+; Midnight-Commander Dual-Pane UI Tekenroutines
 ; ============================================================================
 DRAW_FULL_UI:
-        ; Wis scherm donkerblauw (GPU Opcode 1 = CLEAR_SCREEN, kleur $02)
         LDA #1
         STA IO_GPU
         LDA #$02
         STA IO_GPU
 
-        ; Bovenste Titelbalk (0, 0, 640, 34, kleur $03)
-        LDA #0
-        STA ZP_X_LO
-        STA ZP_X_HI
-        STA ZP_Y_LO
-        STA ZP_Y_HI
-        LDA #<640
-        STA ZP_W_LO
-        LDA #>640
-        STA ZP_W_HI
-        LDA #34
-        STA ZP_H_LO
-        LDA #$03
-        STA ZP_COL
-        JSR GPU_RECT
+        ; Teken alle 8 hoofd-kaders uit UI_BOX_TBL (8 * 8 = 64 bytes)
+        LDX #0
+DFU_BOX_LP:
+        STX TEMP_IDX
+        JSR DRAW_BOX_FROM_TBL
+        LDX TEMP_IDX
+        TXA
+        CLC
+        ADC #8
+        TAX
+        CPX #64
+        BCC DFU_BOX_LP
 
-        ; Cyaan accentlijn onder titelbalk (Y=34)
-        LDA #34
-        STA ZP_Y_LO
-        LDA #2
-        STA ZP_H_LO
-        LDA #$1F
-        STA ZP_COL
-        JSR GPU_RECT
-
-        ; Titeltekst
-        LDA #14
-        STA ZP_X_LO
-        LDA #0
-        STA ZP_X_HI
         LDA #10
-        STA ZP_Y_LO
-        LDA #$FC                ; Geel
+        LDX #0
+        LDY #5
+        JSR SET_XY
+        LDA #$00
         STA ZP_COL
-        LDA #<STR_HEADER
-        STA ZP_PTR_LO
-        LDA #>STR_HEADER
-        STA ZP_PTR_HI
-        JSR GPU_TEXT_2X
+        LDA #<STR_TOP_BAR
+        LDX #>STR_TOP_BAR
+        JSR GPU_TEXT_AX
 
-        ; Linker Playlist Paneel (X=12, Y=44, W=268, H=206, kleur $01)
-        LDA #12
-        STA ZP_X_LO
-        LDA #0
-        STA ZP_X_HI
-        LDA #44
-        STA ZP_Y_LO
-        LDA #<268
-        STA ZP_W_LO
-        LDA #>268
-        STA ZP_W_HI
-        LDA #206
-        STA ZP_H_LO
-        LDA #$01
-        STA ZP_COL
-        JSR GPU_RECT
-
-        LDA #20
-        STA ZP_X_LO
-        LDA #52
-        STA ZP_Y_LO
+        LDA #<334
+        LDX #>334
+        LDY #224
+        JSR SET_XY
         LDA #$1F
         STA ZP_COL
-        LDA #<STR_PLAYLIST_HDR
-        STA ZP_PTR_LO
-        LDA #>STR_PLAYLIST_HDR
-        STA ZP_PTR_HI
-        JSR GPU_TEXT_1X
+        LDA #<STR_EQ_HDR
+        LDX #>STR_EQ_HDR
+        JSR GPU_TEXT_AX
 
-        ; Rechter Visualizer & Sample-Rate Paneel (X=292, Y=44, W=336, H=206, kleur $01)
-        LDA #<292
-        STA ZP_X_LO
-        LDA #>292
-        STA ZP_X_HI
-        LDA #44
-        STA ZP_Y_LO
-        LDA #<336
-        STA ZP_W_LO
-        LDA #>336
-        STA ZP_W_HI
-        LDA #206
-        STA ZP_H_LO
-        LDA #$01
-        STA ZP_COL
-        JSR GPU_RECT
-
-        LDA #<304
-        STA ZP_X_LO
-        LDA #>304
-        STA ZP_X_HI
-        LDA #52
-        STA ZP_Y_LO
-        LDA #$1F
-        STA ZP_COL
-        LDA #<STR_SCOPE_HDR
-        STA ZP_PTR_LO
-        LDA #>STR_SCOPE_HDR
-        STA ZP_PTR_HI
-        JSR GPU_TEXT_1X
-
-        ; VU-Meter Labels ("L" en "R")
-        LDA #<308
-        STA ZP_X_LO
-        LDA #>308
-        STA ZP_X_HI
-        LDA #173
-        STA ZP_Y_LO
-        LDA #$1C
-        STA ZP_COL
-        LDA #<STR_VU_L
-        STA ZP_PTR_LO
-        LDA #>STR_VU_L
-        STA ZP_PTR_HI
-        JSR GPU_TEXT_1X
-
-        LDA #189
-        STA ZP_Y_LO
-        LDA #$1F
-        STA ZP_COL
-        LDA #<STR_VU_R
-        STA ZP_PTR_LO
-        LDA #>STR_VU_R
-        STA ZP_PTR_HI
-        JSR GPU_TEXT_1X
-
-        ; Onderste Transport-paneel (X=12, Y=256, W=616, H=96, kleur $01)
-        LDA #12
-        STA ZP_X_LO
-        LDA #0
-        STA ZP_X_HI
-        LDA #<256
-        STA ZP_Y_LO
-        LDA #>256
+        LDA #6
+        LDX #0
+        LDY #<347
+        JSR SET_XY
+        LDA #1
         STA ZP_Y_HI
-        LDA #<616
-        STA ZP_W_LO
-        LDA #>616
-        STA ZP_W_HI
-        LDA #96
-        STA ZP_H_LO
-        LDA #$01
+        LDA #$00
         STA ZP_COL
-        JSR GPU_RECT
+        LDA #<STR_MC_FKEYS
+        LDX #>STR_MC_FKEYS
+        JSR GPU_TEXT_AX
 
-        ; Help-voettekst onderaan (Y=336)
-        LDA #24
-        STA ZP_X_LO
-        LDA #0
-        STA ZP_X_HI
-        LDA #<336
-        STA ZP_Y_LO
-        LDA #>336
-        STA ZP_Y_HI
-        LDA #$FF
-        STA ZP_COL
-        LDA #<STR_FOOTER
-        STA ZP_PTR_LO
-        LDA #>STR_FOOTER
-        STA ZP_PTR_HI
-        JSR GPU_TEXT_1X
-
-        JSR DRAW_PLAYLIST
+        JSR DRAW_BOTH_PANES
+        JSR DRAW_NOW_PLAYING
         JSR DRAW_RATE_BTNS
-        JSR DRAW_TRANSPORT_BTNS
-        JSR DRAW_PROGRESS_BAR
+        JMP DRAW_TRANSPORT_BTNS
+
+DRAW_BOX_FROM_TBL:
+        LDA UI_BOX_TBL,X
+        STA ZP_X_LO
+        LDA UI_BOX_TBL+1,X
+        STA ZP_X_HI
+        LDA UI_BOX_TBL+2,X
+        STA ZP_Y_LO
+        LDA UI_BOX_TBL+3,X
+        STA ZP_Y_HI
+        LDA UI_BOX_TBL+4,X
+        STA ZP_W_LO
+        LDA UI_BOX_TBL+5,X
+        STA ZP_W_HI
+        LDA UI_BOX_TBL+6,X
+        STA ZP_H_LO
+        LDA UI_BOX_TBL+7,X
+        STA ZP_COL
+        JMP GPU_RECT
+
+SET_XY:
+        STA ZP_X_LO
+        STX ZP_X_HI
+        STY ZP_Y_LO
+        LDA #0
+        STA ZP_Y_HI
         RTS
 
+GPU_TEXT_AX:
+        STA ZP_PTR_LO
+        STX ZP_PTR_HI
+        JMP GPU_TEXT_1X
+
 ; ============================================================================
-; DRAW_PLAYLIST: Teken de 8 SD-Kaart WAV tracks links (X=20..272, Y=66..241)
+; DRAW_BOTH_PANES
 ; ============================================================================
-DRAW_PLAYLIST:
+DRAW_BOTH_PANES:
+        JSR DRAW_MP3_PANE
+        JMP DRAW_WAV_PANE
+
+DRAW_MP3_PANE:
+        LDX #64                 ; Box 8: Linker Paneel Header
+        LDA ACTIVE_PANE
+        BEQ DMP_HDR_ACT
+        LDA #$05
+        BNE DMP_HDR_GO
+DMP_HDR_ACT:
+        LDA #$FC
+DMP_HDR_GO:
+        STA UI_BOX_TBL+71
+        JSR DRAW_BOX_FROM_TBL
+
+        LDA #16
+        LDX #0
+        LDY #28
+        JSR SET_XY
+        LDA ACTIVE_PANE
+        BEQ DMP_HTXT_ACT
+        LDA #$1F
+        BNE DMP_HTXT_GO
+DMP_HTXT_ACT:
+        LDA #$00
+DMP_HTXT_GO:
+        STA ZP_COL
+        LDA #<STR_MP3_HDR
+        LDX #>STR_MP3_HDR
+        JSR GPU_TEXT_AX
+
         LDA #0
         STA TEMP_IDX
-DPL_LP:
-        ; Y = 66 + TEMP_IDX * 22
-        LDA TEMP_IDX
-        ASL A
-        STA ZP_Y_LO
-        ASL A
-        CLC
-        ADC ZP_Y_LO
-        STA ZP_Y_LO
-        LDA TEMP_IDX
-        ASL A
-        ASL A
-        ASL A
-        ASL A
-        CLC
-        ADC ZP_Y_LO
-        ADC #66
+DMP_ROW_LP:
+        LDX TEMP_IDX
+        LDA ROW_Y_TBL,X
         STA ZP_Y_LO
         LDA #0
         STA ZP_Y_HI
-
-        ; Knop achtergrond: Groen ($1C) als geselecteerd, anders donkerpaars/blauw ($05)
-        LDA #20
-        STA ZP_X_LO
-        LDA #0
         STA ZP_X_HI
-        LDA #252
+        LDA #12
+        STA ZP_X_LO
+        LDA #<298
         STA ZP_W_LO
-        LDA #0
+        LDA #>298
         STA ZP_W_HI
         LDA #19
         STA ZP_H_LO
-        LDA #0
-        STA ZP_H_HI
 
+        LDA ACTIVE_PANE
+        BNE DMP_CHK_PLAYING
         LDA TEMP_IDX
-        CMP CUR_TRACK
-        BEQ DPL_ACTIVE
-        LDA #$05
-        JMP DPL_RECT
-DPL_ACTIVE:
+        CMP SEL_MP3
+        BNE DMP_CHK_PLAYING
+        LDA #$1F
+        BNE DMP_DRAW_ROW_BG
+DMP_CHK_PLAYING:
+        LDA PLAY_PANE
+        BNE DMP_ROW_NORM
+        LDA TEMP_IDX
+        CMP PLAY_IDX
+        BNE DMP_ROW_NORM
         LDA #$1C
-DPL_RECT:
-        STA ZP_COL
-        JSR GPU_RECT
+        BNE DMP_DRAW_ROW_BG
+DMP_ROW_NORM:
+        LDA TEMP_IDX
+        CMP SEL_MP3
+        BNE DMP_ROW_DARK
+        LDA #$05
+        BNE DMP_DRAW_ROW_BG
+DMP_ROW_DARK:
+        LDA #$01
+DMP_DRAW_ROW_BG:
+        JSR DRAW_ROW_AND_SET_FG
 
-        ; Teken Track-titel uit WAV_DIR_BUF + TEMP_IDX*32 + 4
         LDA TEMP_IDX
         ASL A
         ASL A
@@ -1214,56 +1343,148 @@ DPL_RECT:
         CLC
         ADC #4
         STA ZP_PTR_LO
-        LDA #>WAV_DIR_BUF
+        LDA #>MP3_DIR_BUF
         STA ZP_PTR_HI
 
-        LDA #28
+        LDA #20
         STA ZP_X_LO
-        LDA ZP_Y_LO
+        LDX TEMP_IDX
+        LDA ROW_Y_TBL,X
         CLC
         ADC #6
         STA ZP_Y_LO
-
-        LDA TEMP_IDX
-        CMP CUR_TRACK
-        BEQ DPL_TXT_ACT
-        LDA #$FF
-        JMP DPL_TXT_GO
-DPL_TXT_ACT:
-        LDA #$00
-DPL_TXT_GO:
-        STA ZP_COL
         JSR GPU_TEXT_1X
+
+        LDA #<236
+        STA ZP_X_LO
+        LDY #4
+        LDA (ZP_PTR_LO),Y
+        CMP #2
+        BEQ DMP_SZ128
+        LDA #<STR_MP3_SZ64
+        LDX #>STR_MP3_SZ64
+        BNE DMP_PRT_SZ
+DMP_SZ128:
+        LDA #<STR_MP3_SIZE
+        LDX #>STR_MP3_SIZE
+DMP_PRT_SZ:
+        JSR GPU_TEXT_AX
 
         INC TEMP_IDX
         LDA TEMP_IDX
         CMP #8
-        BCC DPL_LP
+        BCC DMP_ROW_LP
         RTS
 
-; ============================================================================
-; DRAW_NOW_PLAYING: Toon actieve tracknaam bovenin de Oscilloscoop
-; ============================================================================
-DRAW_NOW_PLAYING:
-        LDA #<430
-        STA ZP_X_LO
-        LDA #>430
-        STA ZP_X_HI
-        LDA #50
+DRAW_ROW_AND_SET_FG:
+        STA ZP_COL
+        JSR GPU_RECT
+        LDA ZP_COL
+        CMP #$1F
+        BEQ DRSF_BLK
+        CMP #$1C
+        BEQ DRSF_BLK
+        LDA #$FF
+        BNE DRSF_SET
+DRSF_BLK:
+        LDA #$00
+DRSF_SET:
+        STA ZP_COL
+        RTS
+
+DRAW_WAV_PANE:
+        LDX #72                 ; Box 9: Rechter Paneel Header
+        LDA ACTIVE_PANE
+        BNE DWP_HDR_ACT
+        LDA #$05
+        BNE DWP_HDR_GO
+DWP_HDR_ACT:
+        LDA #$FC
+DWP_HDR_GO:
+        STA UI_BOX_TBL+79
+        JSR DRAW_BOX_FROM_TBL
+
+        LDA #<334
+        LDX #>334
+        LDY #28
+        JSR SET_XY
+        LDA ACTIVE_PANE
+        BNE DWP_HTXT_ACT
+        LDA #$1F
+        BNE DWP_HTXT_GO
+DWP_HTXT_ACT:
+        LDA #$00
+DWP_HTXT_GO:
+        STA ZP_COL
+        LDA WAV_PAGE
+        BNE DWP_HDR_P2
+        LDA #<STR_WAV_HDR1
+        LDX #>STR_WAV_HDR1
+        BNE DWP_HDR_PRT
+DWP_HDR_P2:
+        LDA #<STR_WAV_HDR2
+        LDX #>STR_WAV_HDR2
+DWP_HDR_PRT:
+        JSR GPU_TEXT_AX
+
+        LDA #0
+        STA TEMP_IDX
+DWP_ROW_LP:
+        LDX TEMP_IDX
+        LDA ROW_Y_TBL,X
         STA ZP_Y_LO
         LDA #0
         STA ZP_Y_HI
-        LDA #188
+        LDA #<330
+        STA ZP_X_LO
+        LDA #>330
+        STA ZP_X_HI
+        LDA #<298
         STA ZP_W_LO
-        LDA #0
+        LDA #>298
         STA ZP_W_HI
-        LDA #12
+        LDA #19
         STA ZP_H_LO
-        LDA #$01
-        STA ZP_COL
-        JSR GPU_RECT
 
-        LDA CUR_TRACK
+        LDA WAV_PAGE
+        ASL A
+        ASL A
+        ASL A
+        CLC
+        ADC TEMP_IDX
+        TAY
+
+        LDA ACTIVE_PANE
+        BEQ DWP_CHK_PLAYING
+        LDA TEMP_IDX
+        CMP SEL_WAV
+        BNE DWP_CHK_PLAYING
+        LDA #$1F
+        BNE DWP_DRAW_ROW_BG
+DWP_CHK_PLAYING:
+        LDA PLAY_PANE
+        BEQ DWP_ROW_NORM
+        CPY PLAY_IDX
+        BNE DWP_ROW_NORM
+        LDA #$1C
+        BNE DWP_DRAW_ROW_BG
+DWP_ROW_NORM:
+        LDA TEMP_IDX
+        CMP SEL_WAV
+        BNE DWP_ROW_DARK
+        LDA #$05
+        BNE DWP_DRAW_ROW_BG
+DWP_ROW_DARK:
+        LDA #$01
+DWP_DRAW_ROW_BG:
+        JSR DRAW_ROW_AND_SET_FG
+
+        LDA WAV_PAGE
+        ASL A
+        ASL A
+        ASL A
+        CLC
+        ADC TEMP_IDX
         ASL A
         ASL A
         ASL A
@@ -1273,342 +1494,257 @@ DRAW_NOW_PLAYING:
         ADC #4
         STA ZP_PTR_LO
         LDA #>WAV_DIR_BUF
+        ADC #0
         STA ZP_PTR_HI
-        LDA #<434
+
+        LDA #<338
         STA ZP_X_LO
-        LDA #>434
+        LDA #>338
         STA ZP_X_HI
-        LDA #52
+        LDX TEMP_IDX
+        LDA ROW_Y_TBL,X
+        CLC
+        ADC #6
         STA ZP_Y_LO
-        LDA #$FC
-        STA ZP_COL
         JSR GPU_TEXT_1X
+
+        LDA #<554
+        STA ZP_X_LO
+        LDA #>554
+        STA ZP_X_HI
+        LDA #<STR_WAV_SIZE
+        LDX #>STR_WAV_SIZE
+        JSR GPU_TEXT_AX
+
+        INC TEMP_IDX
+        LDA TEMP_IDX
+        CMP #8
+        BCC DWP_ROW_LP
         RTS
 
 ; ============================================================================
-; DRAW_RATE_BTNS: Teken de 4 Sample-Rate knoppen (8k / 11k / 16k / 22k Hz)
+; DRAW_NOW_PLAYING, DRAW_RATE_BTNS & DRAW_TRANSPORT_BTNS
 ; ============================================================================
+DRAW_NOW_PLAYING:
+        LDX #96                 ; Box 12: Wis Now Playing gebied
+        JSR DRAW_BOX_FROM_TBL
+
+        LDA #16
+        LDX #0
+        LDY #224
+        JSR SET_XY
+        LDA #$1F
+        STA ZP_COL
+        LDA #<STR_NOW_LBL
+        LDX #>STR_NOW_LBL
+        JSR GPU_TEXT_AX
+
+        LDA PLAY_PANE
+        BNE DNP_WAV_PTR
+        JSR SET_MP3_DIR_PTR
+        JMP DNP_ADD4
+DNP_WAV_PTR:
+        JSR SET_WAV_DIR_PTR
+DNP_ADD4:
+        LDA ZP_PTR_LO
+        CLC
+        ADC #4
+        STA ZP_PTR_LO
+        LDA #104
+        LDX #0
+        LDY #224
+        JSR SET_XY
+        LDA #$FC
+        STA ZP_COL
+        JSR GPU_TEXT_1X
+
+        LDA #16
+        LDX #0
+        LDY #240
+        JSR SET_XY
+        LDA #$1C
+        STA ZP_COL
+        LDA PLAY_PANE
+        BNE DNP_STAT_WAV
+        LDA #<STR_STAT_MP3
+        LDX #>STR_STAT_MP3
+        JMP GPU_TEXT_AX
+DNP_STAT_WAV:
+        LDA #<STR_STAT_WAV
+        LDX #>STR_STAT_WAV
+        JMP GPU_TEXT_AX
+
 DRAW_RATE_BTNS:
         LDX #0
 DRB_LP:
         STX TEMP_IDX
         LDA RATE_BTN_XL,X
-        STA ZP_X_LO
-        LDA RATE_BTN_XH,X
-        STA ZP_X_HI
-        LDA #216
-        STA ZP_Y_LO
-        LDA #0
-        STA ZP_Y_HI
-        LDA #72
+        LDY #254
+        LDX #0
+        JSR SET_XY
+        LDA #52
         STA ZP_W_LO
         LDA #0
         STA ZP_W_HI
-        LDA #24
+        LDA #22
         STA ZP_H_LO
 
+        LDX TEMP_IDX
         INX
         TXA
         CMP CUR_RATE
         BEQ DRB_ACT
         LDA #$24
-        JMP DRB_RECT
+        BNE DRB_RECT
 DRB_ACT:
-        LDA #$FC                ; Geel voor actieve sample rate!
+        LDA #$FC
 DRB_RECT:
-        STA ZP_COL
-        JSR GPU_RECT
+        JSR DRAW_ROW_AND_SET_FG
 
         LDX TEMP_IDX
         LDA RATE_BTN_XL,X
         CLC
-        ADC #12
+        ADC #6
         STA ZP_X_LO
-        LDA RATE_BTN_XH,X
-        ADC #0
-        STA ZP_X_HI
-        LDA #224
+        LDA #261
         STA ZP_Y_LO
         LDA RATE_LBL_LO,X
+        LDY RATE_LBL_HI,X
         STA ZP_PTR_LO
-        LDA RATE_LBL_HI,X
-        STA ZP_PTR_HI
-
-        INX
-        TXA
-        CMP CUR_RATE
-        BEQ DRB_TACT
-        LDA #$FF
-        JMP DRB_TGO
-DRB_TACT:
-        LDA #$00
-DRB_TGO:
-        STA ZP_COL
+        STY ZP_PTR_HI
         JSR GPU_TEXT_1X
 
         LDX TEMP_IDX
         INX
         CPX #4
         BCC DRB_LP
-        RTS
 
-; ============================================================================
-; DRAW_PROGRESS_BAR: Teken Scrubbing Tijdbalk (X=32..543, Y=268, W=512, H=16)
-; ============================================================================
-DRAW_PROGRESS_BAR:
-        ; Achtergrond van balk (512 px breed = 4 px per pagina voor 128 pagina's)
-        LDA #32
-        STA ZP_X_LO
-        LDA #0
-        STA ZP_X_HI
-        LDA #<268
-        STA ZP_Y_LO
-        LDA #>268
-        STA ZP_Y_HI
-        LDA #<512
+        LDA #242
+        LDX #0
+        LDY #254
+        JSR SET_XY
+        LDA #66
         STA ZP_W_LO
-        LDA #>512
-        STA ZP_W_HI
-        LDA #16
+        LDA #22
         STA ZP_H_LO
-        LDA #0
-        STA ZP_H_HI
-        LDA #$00
+        LDA FM_PAD_EN
+        BEQ DRB_FM_OFF
+        LDA #$E2
+        BNE DRB_FM_GO
+DRB_FM_OFF:
+        LDA #$24
+DRB_FM_GO:
         STA ZP_COL
         JSR GPU_RECT
 
-        ; Gevulde balk = PLAY_PAGE * 4
-        LDA PLAY_PAGE
-        BEQ DPB_CURSOR
-        STA ZP_W_LO
-        LDA #0
-        STA ZP_W_HI
-        ASL ZP_W_LO
-        ROL ZP_W_HI
-        ASL ZP_W_LO
-        ROL ZP_W_HI
-        LDA #$1F                ; Helder Cyaan voortgangsbalk
-        STA ZP_COL
-        JSR GPU_RECT
-
-DPB_CURSOR:
-        ; Teken gele scrub-knop op (32 + PLAY_PAGE * 4)
-        LDA PLAY_PAGE
+        LDA #250
         STA ZP_X_LO
-        LDA #0
-        STA ZP_X_HI
-        ASL ZP_X_LO
-        ROL ZP_X_HI
-        ASL ZP_X_LO
-        ROL ZP_X_HI
-        LDA ZP_X_LO
-        CLC
-        ADC #32
-        STA ZP_X_LO
-        LDA ZP_X_HI
-        ADC #0
-        STA ZP_X_HI
-        LDA #6
-        STA ZP_W_LO
-        LDA #0
-        STA ZP_W_HI
-        LDA #$FC
+        LDA #261
+        STA ZP_Y_LO
+        LDA #$FF
         STA ZP_COL
-        JSR GPU_RECT
-        RTS
+        LDA #<STR_BTN_FM
+        LDX #>STR_BTN_FM
+        JMP GPU_TEXT_AX
 
-; ============================================================================
-; DRAW_TRANSPORT_BTNS: Teken [PLAY/PAUSE], [BEGIN], [LOOP], [+FM SYNTH], [EXIT]
-; ============================================================================
 DRAW_TRANSPORT_BTNS:
-        ; 1. [PLAY / PAUSE] (X=32, Y=296, W=136, H=28)
-        LDA #32
+        LDX #0
+DTB_LP:
+        STX TEMP_IDX
+        LDA TBTN_XL,X
         STA ZP_X_LO
-        LDA #0
+        LDA TBTN_XH,X
         STA ZP_X_HI
-        LDA #<296
-        STA ZP_Y_LO
-        LDA #>296
-        STA ZP_Y_HI
-        LDA #136
-        STA ZP_W_LO
-        LDA #0
-        STA ZP_W_HI
-        LDA #28
-        STA ZP_H_LO
-        LDA #0
-        STA ZP_H_HI
-        LDA IS_PLAYING
-        BEQ DTB_PAUSED
-        LDA #$1C                ; Groen tijdens afspelen
-        JMP DTB_P1
-DTB_PAUSED:
-        LDA #$FC                ; Geel op pauze
-DTB_P1:
-        STA ZP_COL
-        JSR GPU_RECT
-
-        LDA #44
-        STA ZP_X_LO
         LDA #<306
         STA ZP_Y_LO
         LDA #>306
         STA ZP_Y_HI
-        LDA #$00
-        STA ZP_COL
-        LDA IS_PLAYING
-        BEQ DTB_P_TXT
-        LDA #<STR_BTN_PLAYING
-        STA ZP_PTR_LO
-        LDA #>STR_BTN_PLAYING
-        STA ZP_PTR_HI
-        JMP DTB_P_GO
-DTB_P_TXT:
-        LDA #<STR_BTN_PAUSED
-        STA ZP_PTR_LO
-        LDA #>STR_BTN_PAUSED
-        STA ZP_PTR_HI
-DTB_P_GO:
-        JSR GPU_TEXT_1X
-
-        ; 2. [|<< BEGIN] (X=180, Y=296, W=104, H=28)
-        LDA #180
-        STA ZP_X_LO
+        LDA TBTN_W,X
+        STA ZP_W_LO
         LDA #0
-        STA ZP_X_HI
-        LDA #<296
-        STA ZP_Y_LO
-        LDA #104
-        STA ZP_W_LO
+        STA ZP_W_HI
         LDA #28
         STA ZP_H_LO
+
+        ; Kies knopkleur per knop 0..4
+        CPX #0
+        BNE DTB_C1
+        LDA IS_PLAYING
+        BEQ DTB_YEL
+        LDA #$1C
+        BNE DTB_DO_RECT
+DTB_C1:
+        CPX #2
+        BNE DTB_C4
+        LDA ALBUM_MODE
+        BNE DTB_YEL
+        LDA #$17
+        BNE DTB_DO_RECT
+DTB_C4:
+        CPX #4
+        BNE DTB_DARK
+        LDA #$E0
+        BNE DTB_DO_RECT
+DTB_YEL:
+        LDA #$FC
+        BNE DTB_DO_RECT
+DTB_DARK:
         LDA #$24
-        STA ZP_COL
-        JSR GPU_RECT
+DTB_DO_RECT:
+        JSR DRAW_ROW_AND_SET_FG
 
-        LDA #194
+        LDX TEMP_IDX
+        LDA TBTN_XL,X
+        CLC
+        ADC #8
         STA ZP_X_LO
-        LDA #<306
-        STA ZP_Y_LO
-        LDA #$FF
-        STA ZP_COL
-        LDA #<STR_BTN_BEGIN
-        STA ZP_PTR_LO
-        LDA #>STR_BTN_BEGIN
-        STA ZP_PTR_HI
-        JSR GPU_TEXT_1X
-
-        ; 3. [LOOP AAN/UIT] (X=296, Y=296, W=136, H=28)
-        LDA #<296
-        STA ZP_X_LO
-        LDA #>296
+        LDA TBTN_XH,X
+        ADC #0
         STA ZP_X_HI
-        LDA #<296
+        LDA #<316
         STA ZP_Y_LO
-        LDA #136
-        STA ZP_W_LO
-        LDA #28
-        STA ZP_H_LO
-        LDA LOOP_MODE
-        BEQ DTB_LP_OFF
-        LDA #$17                ; Blauw/Cyaan als Loop AAN
-        JMP DTB_LP_R
-DTB_LP_OFF:
-        LDA #$24
-DTB_LP_R:
-        STA ZP_COL
-        JSR GPU_RECT
+        LDA #>316
+        STA ZP_Y_HI
 
-        LDA #<312
-        STA ZP_X_LO
-        LDA #>312
-        STA ZP_X_HI
-        LDA #<306
-        STA ZP_Y_LO
-        LDA #$FF
-        STA ZP_COL
-        LDA LOOP_MODE
-        BEQ DTB_LPT_OFF
-        LDA #<STR_BTN_LOOP_ON
-        STA ZP_PTR_LO
-        LDA #>STR_BTN_LOOP_ON
-        STA ZP_PTR_HI
-        JMP DTB_LPT_GO
-DTB_LPT_OFF:
-        LDA #<STR_BTN_LOOP_OFF
-        STA ZP_PTR_LO
-        LDA #>STR_BTN_LOOP_OFF
-        STA ZP_PTR_HI
-DTB_LPT_GO:
-        JSR GPU_TEXT_1X
+        ; Kies label voor knop X
+        CPX #0
+        BNE DTB_L2
+        LDA IS_PLAYING
+        BNE DTB_STD_LBL
+        LDA #<STR_BTN_PAUSED
+        LDX #>STR_BTN_PAUSED
+        BNE DTB_PRT_LBL
+DTB_L2:
+        CPX #2
+        BNE DTB_L3
+        LDA ALBUM_MODE
+        BEQ DTB_STD_LBL
+        LDA #<STR_BTN_ALBUM
+        LDX #>STR_BTN_ALBUM
+        BNE DTB_PRT_LBL
+DTB_L3:
+        CPX #3
+        BNE DTB_STD_LBL
+        LDA WAV_PAGE
+        BEQ DTB_STD_LBL
+        LDA #<STR_BTN_WAVP2
+        LDX #>STR_BTN_WAVP2
+        BNE DTB_PRT_LBL
+DTB_STD_LBL:
+        LDY TEMP_IDX
+        LDA TBTN_LBL_LO,Y
+        LDX TBTN_LBL_HI,Y
+DTB_PRT_LBL:
+        JSR GPU_TEXT_AX
 
-        ; 4. [+FM SYNTH] (X=444, Y=296, W=96, H=28)
-        LDA #<444
-        STA ZP_X_LO
-        LDA #>444
-        STA ZP_X_HI
-        LDA #<296
-        STA ZP_Y_LO
-        LDA #96
-        STA ZP_W_LO
-        LDA #28
-        STA ZP_H_LO
-        LDA FM_PAD_EN
-        BEQ DTB_FM_OFF
-        LDA #$E3                ; Magenta/Paars als FM Pad AAN
-        JMP DTB_FM_R
-DTB_FM_OFF:
-        LDA #$24
-DTB_FM_R:
-        STA ZP_COL
-        JSR GPU_RECT
-
-        LDA #<454
-        STA ZP_X_LO
-        LDA #>454
-        STA ZP_X_HI
-        LDA #<306
-        STA ZP_Y_LO
-        LDA #$FF
-        STA ZP_COL
-        LDA #<STR_BTN_FMPAD
-        STA ZP_PTR_LO
-        LDA #>STR_BTN_FMPAD
-        STA ZP_PTR_HI
-        JSR GPU_TEXT_1X
-
-        ; 5. [STOP] (X=550, Y=296, W=66, H=28)
-        LDA #<550
-        STA ZP_X_LO
-        LDA #>550
-        STA ZP_X_HI
-        LDA #<296
-        STA ZP_Y_LO
-        LDA #66
-        STA ZP_W_LO
-        LDA #28
-        STA ZP_H_LO
-        LDA #$E0                ; Rood
-        STA ZP_COL
-        JSR GPU_RECT
-
-        LDA #<562
-        STA ZP_X_LO
-        LDA #>562
-        STA ZP_X_HI
-        LDA #<306
-        STA ZP_Y_LO
-        LDA #$FF
-        STA ZP_COL
-        LDA #<STR_BTN_EXIT
-        STA ZP_PTR_LO
-        LDA #>STR_BTN_EXIT
-        STA ZP_PTR_HI
-        JSR GPU_TEXT_1X
+        LDX TEMP_IDX
+        INX
+        CPX #5
+        BCC DTB_LP
         RTS
 
 ; ============================================================================
-; GPU Primitieven (Opcode 2 = RECTANGLE, Opcode 8 = TEXT 8x8 karakter)
+; GPU Primitieven & Exit
 ; ============================================================================
 GPU_RECT:
         LDA #2
@@ -1633,7 +1769,6 @@ GPU_RECT:
         STA IO_GPU
         RTS
 
-GPU_TEXT_2X:
 GPU_TEXT_1X:
         LDA ZP_X_LO
         PHA
@@ -1680,125 +1815,146 @@ GTS_DN:
         STA ZP_X_LO
         RTS
 
-; ============================================================================
-; EXIT_PROGRAM: Zet PCM DAC op rust (128), herstel MODE 0 en keer terug
-; ============================================================================
-EXIT_PROGRAM:
+EXIT_STOP_AUDIO:
         LDA #0
+        STA IO_ADMA_CTRL
         STA IO_PCM_RATE
         LDA #128
         STA IO_PCM_DAC
         JSR ROM_SILENCE
+EXIT_KEEP_AUDIO:
+        LDA #12
+        STA IO_GPU
         LDA #1
         STA IO_GPU
+        STA IO_GPU
+        STA IO_MODE
         LDA #$E3
         STA IO_GPU
-        JMP BSRAM_EXIT
+        LDA #12
+        STA IO_TERM
+        RTS
 
-; 87-byte BSRAM Audio & Sector Engine (gekopieerd naar $02A0..$02F6 bij opstarten)
-BSRAM_TRAMP_SRC:
-        ; --- $02A0: BSRAM_PLAY_PAGE (33 bytes) ---
-        LDY #0                  ; +0 (2)
-        STY PEAK_AMP            ; +2 (2)
-BPP_LP:
-        STY IO_RD_LO            ; +4 (3)
-        LDA IO_RD_DATA          ; +7 (3)
-        STA IO_PCM_DAC          ; +10 (3)
-        SEC                     ; +13 (1)
-        SBC #128                ; +14 (2)
-        BPL BPP_ABS             ; +16 (2)
-        EOR #$FF                ; +18 (2)
-        CLC                     ; +20 (1)
-        ADC #1                  ; +21 (2)
-BPP_ABS:
-        CMP PEAK_AMP            ; +23 (2)
-        BCC BPP_NXT             ; +25 (2)
-        STA PEAK_AMP            ; +27 (2)
-BPP_NXT:
-        INY                     ; +29 (1)
-        BNE BPP_LP              ; +30 (2)
-        RTS                     ; +32 (1) -> totaal 33 bytes ($02A0..$02C0)
-
-        ; --- $02C1: BSRAM_COPY_SEC (43 bytes) ---
-        LDA LOAD_PAGE_PTR       ; +33 (2)
-        STA IO_RD_HI            ; +35 (3)
-        LDY #0                  ; +38 (2)
+; ============================================================================
+; BSRAM Sector-naar-SDRAM Kopieer-Routine ($02C0, 53 bytes)
+; ============================================================================
+BSRAM_SRC:
+        LDA LOAD_PAGE_PTR
+        STA IO_RD_HI
+        LDY #0
 BCS_P0:
-        STY IO_RD_LO            ; +40 (3)
-        LDA SEC_TMP_BUF,Y       ; +43 (3)
-        STA IO_RD_DATA          ; +46 (3)
-        INY                     ; +49 (1)
-        BNE BCS_P0              ; +50 (2)
-        INC LOAD_PAGE_PTR       ; +52 (2)
-        LDA LOAD_PAGE_PTR       ; +54 (2)
-        STA IO_RD_HI            ; +56 (3)
-        LDY #0                  ; +59 (2)
+        STY IO_RD_LO
+        LDA SEC_TMP_BUF,Y
+        STA IO_RD_DATA
+        INY
+        BNE BCS_P0
+        INC LOAD_PAGE_PTR
+        LDA LOAD_PAGE_PTR
+        STA IO_RD_HI
+        LDY #0
 BCS_P1:
-        STY IO_RD_LO            ; +61 (3)
-        LDA SEC_TMP_BUF+$100,Y  ; +64 (3)
-        STA IO_RD_DATA          ; +67 (3)
-        INY                     ; +70 (1)
-        BNE BCS_P1              ; +71 (2)
-        INC LOAD_PAGE_PTR       ; +73 (2)
-        RTS                     ; +75 (1) -> totaal 43 bytes ($02C1..$02EB)
-
-        ; --- $02EC: BSRAM_EXIT (11 bytes) ---
-        LDA #1                  ; +76 (2)
-        STA IO_MODE             ; +78 (3)
-        LDA #12                 ; +81 (2)
-        STA IO_TERM             ; +83 (3)
-        RTS                     ; +86 (1) -> totaal 87 bytes ($02A0..$02F6)
+        STY IO_RD_LO
+        LDA SEC_TMP_BUF+$100,Y
+        STA IO_RD_DATA
+        INY
+        BNE BCS_P1
+        INC LOAD_PAGE_PTR
+        BNE BCS_DONE
+        INC CUR_LOAD_BANK
+        LDA CUR_LOAD_BANK
+        STA IO_RD_BANK
+BCS_DONE:
+        RTS
 
 ; ============================================================================
-; Tabellen & Teksten
+; Tabellen, UI-Boxen & Teksten
 ; ============================================================================
-TRK_CACHED:
+MP3_CACHED:
         DB 0, 0, 0, 0, 0, 0, 0, 0
+WAV_CACHED:
+        DB 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+
+; UI_BOX_TBL: 13 boxen van 8 bytes (x_lo, x_hi, y_lo, y_hi, w_lo, w_hi, h_lo, col)
+UI_BOX_TBL:
+        DB 0, 0, 0, 0, <640, >640, 18, $17          ; 0  (0): Top bar
+        DB 6, 0, 20, 0, <310, >310, 194, $1F        ; 1  (8): Left border
+        DB 8, 0, 22, 0, <306, >306, 190, $01        ; 2 (16): Left inner
+        DB <324, >324, 20, 0, <310, >310, 194, $1F  ; 3 (24): Right border
+        DB <326, >326, 22, 0, <306, >306, 190, $01  ; 4 (32): Right inner
+        DB 6, 0, 218, 0, <310, >310, 64, $01        ; 5 (40): Deck left
+        DB <324, >324, 218, 0, <310, >310, 64, $01  ; 6 (48): Deck right
+        DB 0, 0, <342, >342, <640, >640, 18, $17    ; 7 (56): Bottom FKey bar
+        DB 10, 0, 24, 0, <302, >302, 15, $FC        ; 8 (64): Left pane header
+        DB <328, >328, 24, 0, <302, >302, 15, $05   ; 9 (72): Right pane header
+        DB 16, 0, 238, 0, <294, >294, 12, $01       ; 10(80): Status line clear
+        DB 32, 0, <286, >286, <512, >512, 12, $00   ; 11(88): Progress bar clear
+        DB 12, 0, 222, 0, <298, >298, 30, $01       ; 12(96): Now Playing clear
+
+ROW_Y_TBL:
+        DB 42, 63, 84, 105, 126, 147, 168, 189
 
 RATE_BTN_XL:
-        DB <304, <382, <460, <538
-RATE_BTN_XH:
-        DB >304, >382, >460, >538
+        DB 14, 70, 126, 182
 RATE_LBL_LO:
         DB <STR_R8K, <STR_R11K, <STR_R16K, <STR_R22K
 RATE_LBL_HI:
         DB >STR_R8K, >STR_R11K, >STR_R16K, >STR_R22K
 
-STR_R8K:          DB "8 kHz", 0
+TBTN_XL:
+        DB 8, 144, <252, <388, <520
+TBTN_XH:
+        DB 0, 0, >252, >388, >520
+TBTN_W:
+        DB 128, 100, 128, 124, 114
+TBTN_LBL_LO:
+        DB <STR_BTN_PLAYING, <STR_BTN_BEGIN, <STR_BTN_LOOP1, <STR_BTN_WAVP1, <STR_BTN_EXIT
+TBTN_LBL_HI:
+        DB >STR_BTN_PLAYING, >STR_BTN_BEGIN, >STR_BTN_LOOP1, >STR_BTN_WAVP1, >STR_BTN_EXIT
+
+EQ_BAR_XL:
+        DB <334, <351, <368, <385, <402, <419, <436, <453
+        DB <470, <487, <504, <521, <538, <555, <572, <589
+EQ_BAR_XH:
+        DB >334, >351, >368, >385, >402, >419, >436, >453
+        DB >470, >487, >504, >521, >538, >555, >572, >589
+EQ_BAR_COL:
+        DB $1C, $1C, $1D, $1F, $1F, $3F, $7C, $FC
+        DB $FC, $F8, $F4, $F0, $E0, $E2, $E7, $FF
+
+STR_R8K:          DB "8kHz", 0
 STR_R11K:         DB "11kHz", 0
 STR_R16K:         DB "16kHz", 0
 STR_R22K:         DB "22kHz", 0
+STR_BTN_FM:       DB "M:+FM", 0
 
-STR_HEADER:       DB "MINIGPU SD-KAART .WAV & PCM DIGITAL AUDIO STUDIO ($A016 / $A017)", 0
-STR_PLAYLIST_HDR: DB "SD-KAART .WAV TRACKS (1-8):", 0
-STR_SCOPE_HDR:    DB "OSCILLOSCOOP:", 0
-STR_VU_L:         DB "L:", 0
-STR_VU_R:         DB "R:", 0
+STR_TOP_BAR:      DB "MP3Commander 2.0 | Links: .MP3 (128KB/16s) | Rechts: .WAV (32KB) | Hulp-CPU", 0
+STR_MP3_HDR:      DB "LINKER PANEEL: SD .MP3 (16.4 SEC)", 0
+STR_WAV_HDR1:     DB "RECHTER PANEEL: SD .WAV (PAG 1/2)", 0
+STR_WAV_HDR2:     DB "RECHTER PANEEL: SD .WAV (PAG 2/2)", 0
+STR_MP3_SIZE:     DB "128K 16s", 0
+STR_MP3_SZ64:     DB " 64K  8s", 0
+STR_WAV_SIZE:     DB " 32K  4s", 0
+STR_NOW_LBL:      DB "NU SPEELT:", 0
+STR_STAT_MP3:     DB "HULP-CPU ($A018): 128KB .MP3 (512 PAG)", 0
+STR_STAT_WAV:     DB "HULP-CPU ($A018): 32KB .WAV (128 PAG)", 0
+STR_LOADING_SD:   DB ">> LADEN VAN MICROSD NAAR SDRAM...", 0
+STR_EQ_HDR:       DB "16-BAND LIVE SPECTRUM EQUALIZER:", 0
 STR_BTN_PLAYING:  DB "|> SPEELT AF", 0
 STR_BTN_PAUSED:   DB "|| GEPAUZEERD", 0
 STR_BTN_BEGIN:    DB "|<< BEGIN", 0
-STR_BTN_LOOP_ON:  DB "LOOP: AAN", 0
-STR_BTN_LOOP_OFF: DB "LOOP: UIT", 0
-STR_BTN_FMPAD:    DB "+FM SYNTH", 0
-STR_BTN_EXIT:     DB "STOP", 0
-STR_FOOTER:       DB "MUIS: Klik Track/Tijdbalk/Knop | 1-8:Track | SPATIE:Pauze | S:Hz | Q:Stop", 0
+STR_BTN_LOOP1:    DB "L:LOOP NUMMER", 0
+STR_BTN_ALBUM:    DB "L:ALBUM AUTO", 0
+STR_BTN_WAVP1:    DB "P:WAV PAG 1/2", 0
+STR_BTN_WAVP2:    DB "P:WAV PAG 2/2", 0
+STR_BTN_EXIT:     DB "ESC:SLUITEN", 0
+STR_MC_FKEYS:     DB "PIJL/TAB:Kies ENTER:Speel 1-8:Track SPATIE:Pauze S:Hz L:Album B:BgPlay ESC:Stop", 0
 
-; Standaard WAV Directory (8 entries van exact 32 bytes voor Sector $2000)
-; Formaat: "WAV!" (4B) + Titel (15B + 0) + sec_lo, sec_hi, secs, pages, rate, dur + 6x0 = 32B
-DEFAULT_WAV_DIR:
-        ; Track 0: Sector $2010, 64 sectoren (32KB = 128 pages), Rate 1 (8000 Hz)
-        DB "WAV!", "1.TANG NANO STM", 0, $10, $20, 64, 128, 1, 4, 0, 0, 0, 0, 0, 0
-        ; Track 1: Sector $2050, 64 sectoren (32KB = 128 pages), Rate 1 (8000 Hz)
-        DB "WAV!", "2.FUNK DRUMBEAT", 0, $50, $20, 64, 128, 1, 4, 0, 0, 0, 0, 0, 0
-        ; Track 2: Sector $2090, 64 sectoren (32KB = 128 pages), Rate 2 (11025 Hz)
-        DB "WAV!", "3.WINDOWS TADA!", 0, $90, $20, 64, 128, 2, 3, 0, 0, 0, 0, 0, 0
-        ; Track 3: Sector $20D0, 64 sectoren (32KB = 128 pages), Rate 1 (8000 Hz)
-        DB "WAV!", "4.CYBER ACID BS", 0, $D0, $20, 64, 128, 1, 4, 0, 0, 0, 0, 0, 0
-        ; Track 4: Sector $2110, 64 sectoren (32KB = 128 pages), Rate 2 (11025 Hz)
-        DB "WAV!", "5.STUDIO CHIMES", 0, $10, $21, 64, 128, 2, 3, 0, 0, 0, 0, 0, 0
-        ; Track 5: Sector $2150, 64 sectoren (32KB = 128 pages), Rate 1 (8000 Hz)
-        DB "WAV!", "6.SPACE RADIO  ", 0, $50, $21, 64, 128, 1, 4, 0, 0, 0, 0, 0, 0
-        ; Track 6: Sector $2190, 64 sectoren (32KB = 128 pages), Rate 1 (8000 Hz)
-        DB "WAV!", "7.BOERDERIJ WEI", 0, $90, $21, 64, 128, 1, 4, 0, 0, 0, 0, 0, 0
-        ; Track 7: Sector $21D0, 64 sectoren (32KB = 128 pages), Rate 1 (8000 Hz)
-        DB "WAV!", "8.OCHTENDVOGELS", 0, $D0, $21, 64, 128, 1, 4, 0, 0, 0, 0, 0, 0
+DEFAULT_MP3_DIR:
+        DB "MP3!", "1.OUTFOXING.MP3", 0, $10, $24, 0,   2, 1, 16, 0, 0, 0, 0, 0, 0
+        DB "MP3!", "2.CALIF DREM.MP", 0, $10, $25, 0,   2, 1, 16, 0, 0, 0, 0, 0, 0
+        DB "MP3!", "3.MONDAY MON.MP", 0, $10, $26, 128, 1, 1,  8, 0, 0, 0, 0, 0, 0
+        DB "MP3!", "4.DEDICATED.MP3", 0, $90, $26, 128, 1, 1,  8, 0, 0, 0, 0, 0, 0
+        DB "MP3!", "5.DANCING ST.MP", 0, $10, $27, 128, 1, 1,  8, 0, 0, 0, 0, 0, 0
+        DB "MP3!", "6.SPAN HARLM.MP", 0, $90, $27, 128, 1, 1,  8, 0, 0, 0, 0, 0, 0
+        DB "MP3!", "7.TWIST SHT.MP3", 0, $10, $28, 128, 1, 1,  8, 0, 0, 0, 0, 0, 0
+        DB "MP3!", "8.CALL NAME.MP3", 0, $90, $28, 128, 1, 1,  8, 0, 0, 0, 0, 0, 0

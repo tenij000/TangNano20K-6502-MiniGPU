@@ -752,7 +752,7 @@
             <button class="sbtn" onclick="sendRawData('\xf0')" title="Schakel direct naar het 720p 3D Space Planeten-landschap!">🪐 Space</button>
             <button class="sbtn" onclick="sendRawData('\xf3')" title="Verberg/toon de BASIC-tekst voor een beeldvullend 1280x720 Hardware Panorama!">🖼️ Panorama</button>
             <button class="sbtn" onclick="sendLineCmd('SD : DRIVE 0 : BRUN \x22MUIS\x22')" title="Start het Hardware Sprite Muis-Test, Doelwit-Game &amp; Teken-Studio programma op Drive D0!">🖱️ Muis Studio</button>
-            <button class="sbtn" onclick="sendLineCmd('SD : DRIVE 0 : BRUN \x22WAVPLAY\x22')" title="Start de SD-Kaart Digitale .WAV Audio Studio &amp; Speler op Drive D0!">🎧 WAV Studio</button>
+            <button class="sbtn" onclick="sendLineCmd('SD : DRIVE 0 : BRUN \x22MP3PLAY\x22')" title="Start MP3Commander 2.0 (Midnight-Commander Dual-Pane .MP3 &amp; .WAV Speler via Hardware Audio Hulp-CPU) op Drive D0!">🎧 MP3 &amp; WAV Commander</button>
             <button class="sbtn" onclick="sendLineCmd('SD : DRIVE 1 : BRUN \x22TELETEKST\x22')" title="Start Live NOS Teletekst op Drive D1!">📺 Teletekst</button>
             <button class="sbtn" onclick="sendLineCmd('SD : DRIVE 1 : BRUN \x22DUNGEON\x22')" title="Start de 3D First-Person Dungeon Crawler op Drive D1!">⚔️ 3D Dungeon</button>
             <button class="sbtn" onclick="sendLineCmd('SD : DRIVE 0 : BRUN \x22FTP\x22')" title="Start de W5500 FTP- &amp; Eigen 6502 Webserver op http://192.168.178.201/ (:21 &amp; :80)!">🌐 FTP &amp; Web</button>
@@ -2449,28 +2449,43 @@ RUN</pre></div>
       </ul>
       <div class="code-card"><pre>SD : DRIVE 0 : BRUN "MUIS"</pre></div>
 
-      <h4 class="sub-title" id="h16_wav">18. 🎧🔊 <code>WAVPLAY.asm</code> &amp; De 16 <code>.WAV</code> / <code>.MP3</code> Slots op de MicroSD-Kaart (<code>Sector $2000–$240F</code>)</h4>
-      <p>Op <strong>Drive 0 (<code>D0</code>, slot <code>#11</code>)</strong> en <strong>Drive 1 (<code>D1</code>, slot <code>#1</code>)</strong> staat het 6502-machinecodeprogramma <strong><code>WAVPLAY</code></strong> (<code>sdcard/WAVPLAY.asm</code>, <code>3068 bytes</code> op <code>$8000</code>), én vanaf <strong>MicroSD-sector <code>$2000</code> (4,0 MB offset)</strong> heeft de SD-kaart een speciale <strong>512 KB Digitale Audio-Partitie</strong> met <strong>16 slots van elk 32 KB (64 sectoren)</strong> voor vogelgeluiden, boerderijgeluiden, drums en geconverteerde <code>.MP3</code>-tracks!</p>
+      <h4 class="sub-title" id="h16_wav">18. 🎧🎵 <code>MP3PLAY.asm</code> / <code>WAVPLAY.asm</code> — MP3Commander 2.0: Midnight-Commander Dual-Pane <code>.MP3</code> &amp; <code>.WAV</code> Speler (<code>SD : DRIVE 0 : BRUN "MP3PLAY"</code>)</h4>
+      <p>Op <strong>Drive 0 (<code>D0</code>)</strong>, <strong>Drive 1 (<code>D1</code>)</strong> en <strong>Drive 2 (<code>D2</code>)</strong> staat het 6502-machinecodeprogramma <strong><code>MP3PLAY</code></strong> (én gekoppeld als <strong><code>WAVPLAY</code></strong>, <code>sdcard/MP3PLAY.asm</code>, <code>4081 bytes</code> op <code>$8000</code>, zodat je hem zowel met <code>BRUN "MP3PLAY"</code> als vanuit Midnight Commander <code>BRUN "MC"</code> kunt starten!). Dit programma heeft precies zo'n <strong>Midnight-Commander Dual-Pane keuzelijst</strong> als <code>MC</code> waarmee je door <strong>8 echte <code>.MP3</code>-liedjes (links)</strong> én <strong>16 digitale <code>.WAV</code>-geluiden (rechts)</strong> bladert en ze afspeelt via de <strong>Hardware Audio Hulp-CPU (<code>$A018–$A01B</code>)</strong>!</p>
       <ul>
-        <li><strong>📂 Waar staan de 16 <code>.WAV</code>-bestanden op de MicroSD-kaart? (Sector <code>$2000–$240F</code>):</strong>
+        <li><strong>📂 Linker Paneel — 8 Echte <code>.MP3</code> Liedjes (Sector <code>$2001</code> &amp; <code>$2410–$290F</code>, gecachet in SDRAM Banken <code>44..59</code>):</strong>
           <ul>
-            <li><strong>Sector <code>$2000</code> (Directory-Sector, 16 × 32 bytes):</strong> Bevat voor elk slot <code>#1..#16</code> de magic-header <code>"WAV1"</code>, de naam van 16 tekens, de startsector (<code>$2010..$23D0</code>), het aantal sectoren (<code>64</code> = 32 KB) en de sample-rate code (<code>1</code> = 8.000 Hz, <code>2</code> = 11.025 Hz, <code>3</code> = 16.000 Hz, <code>4</code> = 22.050 Hz). Typ in BASIC simpelweg <strong><code>WAV</code></strong> om deze hele lijst op je scherm te tonen!</li>
-            <li><strong>Slot <code>#1..#10</code> (Boerderij- &amp; Vogelgeluiden, 8 kHz):</strong>
-              <code>#1: 1.BOERDERIJ WEI</code> (<code>$2010</code>), <code>#2: 2.OCHTENDVOGELS</code> (<code>$2050</code>), <code>#3: 3.KRAAIENDE HN</code> (<code>$2090</code>), <code>#4: 4.TWENTSE KOE</code> (<code>$20D0</code>), <code>#5: 5.SCHAPENKUDDE</code> (<code>$2110</code>), <code>#6: 6.VARKEN &amp; KIP</code> (<code>$2150</code>), <code>#7: 7.BOSVOGEL KOOR</code> (<code>$2190</code>), <code>#8: 8.DORPSKERK KLK</code> (<code>$21D0</code>), <code>#9: 1.VROEGE MEREL</code> (<code>$2210</code>), <code>#10: 2.BOERENERF MIX</code> (<code>$2250</code>).</li>
-            <li><strong>Slot <code>#11..#16</code> (Stem, Drums, Studio &amp; MP3-Slots):</strong>
-              <code>#11: 3.TANG NANO STM</code> (<code>$2290</code>, 8 kHz stem), <code>#12: 4.FUNK DRUMBEAT</code> (<code>$22D0</code>, 8 kHz), <code>#13: 5.WINDOWS TADA!</code> (<code>$2310</code>, 11 kHz), <code>#14: 6.CYBER ACID BS</code> (<code>$2350</code>, 8 kHz), <code>#15: 7.STUDIO CHIMES</code> (<code>$2390</code>, 11 kHz), <code>#16: 8.SPACE RADIO</code> (<code>$23D0</code>, 8 kHz).</li>
+            <li><strong><code>1.OUTFOXING.MP3</code></strong> (<code>$2410</code>, 128 KB / 512 pag. = <strong>16,4 sec</strong>) — <em>Kevin MacLeod: Outfoxing the Fox</em></li>
+            <li><strong><code>2.CALIF DREM.MP</code></strong> (<code>$2510</code>, 128 KB / 512 pag. = <strong>16,4 sec</strong>) — <em>The Mamas &amp; the Papas: California Dreamin'</em></li>
+            <li><strong><code>3.MONDAY MON.MP</code></strong> (<code>$2610</code>, 64 KB / 256 pag. = <strong>8,2 sec</strong>) — <em>The Mamas &amp; the Papas: Monday, Monday</em></li>
+            <li><strong><code>4.DEDICATED.MP3</code></strong> (<code>$2690</code>, 64 KB / 256 pag. = <strong>8,2 sec</strong>) — <em>The Mamas &amp; the Papas: Dedicated To The One I Love</em></li>
+            <li><strong><code>5.DANCING ST.MP</code></strong> (<code>$2710</code>, 64 KB / 256 pag. = <strong>8,2 sec</strong>) — <em>The Mamas &amp; the Papas: Dancing In The Street</em></li>
+            <li><strong><code>6.SPAN HARLM.MP</code></strong> (<code>$2790</code>, 64 KB / 256 pag. = <strong>8,2 sec</strong>) — <em>The Mamas &amp; the Papas: Spanish Harlem</em></li>
+            <li><strong><code>7.TWIST SHT.MP3</code></strong> (<code>$2810</code>, 64 KB / 256 pag. = <strong>8,2 sec</strong>) — <em>The Mamas &amp; the Papas: Twist And Shout</em></li>
+            <li><strong><code>8.CALL NAME.MP3</code></strong> (<code>$2890</code>, 64 KB / 256 pag. = <strong>8,2 sec</strong>) — <em>The Mamas &amp; the Papas: I Call Your Name</em></li>
           </ul>
         </li>
-        <li><strong>🖱️ Volledige Muis- &amp; Toetsenbord-Besturing in <code>WAVPLAY</code> + Live Oscilloscoop &amp; Stereo VU-Meters:</strong>
+        <li><strong>📂 Rechter Paneel — 16 Digitale <code>.WAV</code> Geluiden op Pagina 1/2 &amp; 2/2 (Sector <code>$2000</code> &amp; <code>$2010–$240F</code>, SDRAM Banken <code>28..43</code>):</strong>
           <ul>
-            <li><strong>Track kiezen (<code>1..6</code> of klik met de muis in de linker Playlist):</strong> Laadt de 64 sectoren (32 KB) van de SD-kaart in een eigen 64 KB SDRAM-bank zodat wisselen en loopen daarna met <strong>0,00 ms vertraging</strong> werkt!</li>
-            <li><strong>Interactieve Tijdbalk / Scrubbing (Pijltjes <code>A</code>/<code>D</code> of klik met de muis op de blauwe voortgangsbalk):</strong> Spring direct naar elk gewenst punt in het geluidsbestand!</li>
-            <li><strong>Sample-Rate / Pitch Knoppen (Toets <code>S</code> of klik op <code>[8 kHz]</code>, <code>[11kHz]</code>, <code>[16kHz]</code>, <code>[22kHz]</code>):</strong> Verander live tijdens het afspelen de hardware-kloksnelheid van <code>$A017</code> (van slow-motion bas tot snelle chipmunk-stem!).</li>
-            <li><strong><code>[+FM SYNTH]</code> (Toets <code>M</code>):</strong> Zet tegelijk met de digitale <code>.WAV</code> track een warm 4-kanaals FM Strings-akkoord aan om te horen hoe de FPGA <strong>PCM-samples én 4-kanaals FM-synthese live samenmixt</strong>!</li>
+            <li><strong>Pagina 1/2 (<code>#1..#8</code>):</strong> <code>1.BOERDERIJ WEI</code>, <code>2.OCHTENDVOGELS</code>, <code>3.KRAAIENDE HN</code>, <code>4.TWENTSE KOE</code>, <code>5.SCHAPENKUDDE</code>, <code>6.VARKEN &amp; KIP</code>, <code>7.BOSVOGEL KOOR</code>, <code>8.DORPSKERK KLK</code>.</li>
+            <li><strong>Pagina 2/2 (<code>#9..#16</code>, wissel met toets <code>P</code>):</strong> <code>1.VROEGE MEREL</code>, <code>2.BOERENERF MIX</code>, <code>3.TANG NANO STM</code>, <code>4.FUNK DRUMBEAT</code>, <code>5.WINDOWS TADA!</code>, <code>6.CYBER ACID BS</code>, <code>7.STUDIO CHIMES</code>, <code>8.SPACE RADIO</code>.</li>
+          </ul>
+        </li>
+        <li><strong>⌨️🖱️ Midnight-Commander Besturing, 16-Band Live Spectrum Equalizer &amp; Achtergrond-Modus:</strong>
+          <ul>
+            <li><strong><code>Pijl Omhoog/Omlaag</code> (of <code>W</code>/<code>X</code>):</strong> Beweeg de cyaanblauwe keuzebalk door de lijst (terwijl het huidige <code>.MP3</code>-liedje via de Hardware Audio Hulp-CPU op <code>$A018</code> zonder enige hapering doorspeelt!).</li>
+            <li><strong><code>TAB</code> of <code>Pijl Links/Rechts</code>:</strong> Wissel tussen het <strong>Linker Paneel (<code>.MP3</code>)</strong> en het <strong>Rechter Paneel (<code>.WAV</code>)</strong>.</li>
+            <li><strong><code>Enter</code> of Cijfertoetsen <code>1..8</code> (of Muisklik op een regel):</strong> Laadt het gekozen <code>.MP3</code>- of <code>.WAV</code>-bestand éénmalig van de MicroSD-kaart in zijn eigen SDRAM-cachebank en start direct de Hardware Audio Hulp-CPU!</li>
+            <li><strong><code>Spatie</code>:</strong> Pauzeer / Hervat de Hardware Audio Hulp-CPU precies op de huidige sample-pagina.</li>
+            <li><strong><code>L</code>:</strong> Wissel tussen <strong><code>L:LOOP NUMMER</code></strong> (herhaalt het huidige liedje eindeloos) en <strong><code>L:ALBUM AUTO</code></strong> (Auto-DJ: springt zodra een liedje klaar is vanzelf naar het volgende <code>.MP3</code>-nummer!).</li>
+            <li><strong><code>P</code>:</strong> Wissel het rechter <code>.WAV</code>-paneel tussen <strong>Pagina 1/2 (<code>#1..#8</code>)</strong> en <strong>Pagina 2/2 (<code>#9..#16</code>)</strong>.</li>
+            <li><strong><code>S</code> (of klik op <code>[8kHz]</code>, <code>[11kHz]</code>, <code>[16kHz]</code>, <code>[22kHz]</code>):</strong> Verander live de afspeelsnelheid/pitch van de Hardware Audio Hulp-CPU!</li>
+            <li><strong><code>M</code> (of klik op <code>[M:+FM]</code>):</strong> Meng live een warm 4-kanaals 16-bit FM Strings-akkoord onder het spelende <code>.MP3</code>-liedje.</li>
+            <li><strong><code>B</code> (Background Play &amp; Exit!):</strong> Sluit <code>MP3PLAY</code> af terug naar BASIC of Midnight Commander terwijl de <strong>Hardware Audio Hulp-CPU het <code>.MP3</code>-liedje op de achtergrond blijft doorspelen!</strong></li>
+            <li><strong><code>ESC</code> / <code>Q</code> / <code>0</code>:</strong> Stop de muziek en keer netjes terug naar BASIC of Midnight Commander.</li>
           </ul>
         </li>
       </ul>
-      <div class="code-card"><pre>SD : DRIVE 0 : BRUN "WAVPLAY"</pre></div>
+      <div class="code-card"><pre>SD : DRIVE 0 : BRUN "MP3PLAY"</pre></div>
 
       <!-- HOOFDSTUK 17 -->
       <h3 class="chapter-title" id="h17">Hoofdstuk 17: 🌾⏱️🖱️ De 720p Boerderij-Engine (<code>$A006</code>), Hardware Klok HUD (<code>$A007–$A009</code>) &amp; Hardware Sprite Muispijl (<code>$A00C–$A00F</code>)</h3>

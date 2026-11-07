@@ -1065,6 +1065,23 @@ Op je MicroSD-kaart staat direct achter de 16 WAV-slots (op **Sector `$2410–$2
 310 WAV 0 : CLEAR $E3 : CLS : PRINT "MP3 SPELER GESTOPT!"
 ```
 
+##### Voorbeeld 7: 🎧🎵 `BRUN "MP3PLAY"` / `BRUN "WAVPLAY"` — MP3Commander 2.0 (Midnight-Commander Dual-Pane `.MP3` & `.WAV` Speler op `$8000`)
+Wil je net als in Midnight Commander (`BRUN "MC"`) met een keuzelijst door al je `.MP3`-liedjes én `.WAV`-geluiden bladeren en ze met `Enter` (of cijfers `1..8`) starten? Op **Drive 0 (`D0`)**, **Drive 1 (`D1`)** en **Drive 2 (`D2`)** staat het 6502 Assembly-programma **`MP3PLAY`** (`sdcard/MP3PLAY.asm`, gekoppeld aan **`WAVPLAY`**):
+- **Linker Paneel (`.MP3` Liedjes, Sector `$2001` & `$2410–$290F`, SDRAM Banken `44..59`):**
+  1. `1.OUTFOXING.MP3` (`$2410`, 128 KB = 16,4 sec) — *Outfoxing the Fox*
+  2. `2.CALIF DREM.MP` (`$2510`, 128 KB = 16,4 sec) — *California Dreamin'*
+  3. `3.MONDAY MON.MP` (`$2610`, 64 KB = 8,2 sec) — *Monday, Monday*
+  4. `4.DEDICATED.MP3` (`$2690`, 64 KB = 8,2 sec) — *Dedicated To The One I Love*
+  5. `5.DANCING ST.MP` (`$2710`, 64 KB = 8,2 sec) — *Dancing In The Street*
+  6. `6.SPAN HARLM.MP` (`$2790`, 64 KB = 8,2 sec) — *Spanish Harlem*
+  7. `7.TWIST SHT.MP3` (`$2810`, 64 KB = 8,2 sec) — *Twist And Shout*
+  8. `8.CALL NAME.MP3` (`$2890`, 64 KB = 8,2 sec) — *I Call Your Name*
+- **Rechter Paneel (16 `.WAV` Geluiden, Sector `$2000` & `$2010–$240F`, SDRAM Banken `28..43`):** Pagina 1/2 (`#1..#8`) en Pagina 2/2 (`#9..#16`, wissel met toets `P`).
+- **Besturing:** `Pijltjes Omhoog/Omlaag` = Kies bestand • `TAB` / `Pijl Links/Rechts` = Wissel `.MP3` / `.WAV` paneel • `Enter` of `1..8` = Speel gekozen bestand via de **Hardware Audio Hulp-CPU (`$A018–$A01B`)** • `Spatie` = Pauze/Hervat • `L` = Loop Nummer / Album Auto-DJ • `S` = Sample-Rate (`8/11/16/22 kHz`) • `M` = +FM Synth Pad • `B` = Sluit af terwijl het `.MP3`-liedje op de achtergrond doorspeelt • `ESC`/`Q` = Stop & Sluit.
+```basic
+SD : DRIVE 0 : BRUN "MP3PLAY"
+```
+
 ---
 
 ### 📋 Bijlage A: Het Grote MiniGPU-BASIC 1.2 Spiekbriefje
@@ -1102,7 +1119,7 @@ Op je MicroSD-kaart staat direct achter de 16 WAV-slots (op **Sector `$2410–$2
 | `WAV [1..16, r, m]` / `WAV 0` | `WAV 2` of `WAV 12, 1, 1` | **Ingebouwd MicroSD `.WAV`-commando:** `WAV`=lijst alle 16 tracks, `WAV 0`=stop, `WAV nr[,rate[,mode]]` speelt op de **Audio Hulp-CPU** (`mode 0`=achtergrond, `1`=oneindige loop, `2`=wacht) |
 | `PEEK/POKE $A018..$A01B` | `POKE $A018,62:POKE $A01B,129` | **Hardware Audio Hulp-CPU (SDRAM Audio-DMA):** `$A018`=Bank, `$A019/$A01A`=Pagina's L/H, `$A01B`=Start/Loop (`+128`)/Status |
 | `BRUN "MUIS"` | `SD : DRIVE 0 : BRUN "MUIS"` | Start **Hardware Sprite Muis-Test, Doelwit-Game & Teken-Studio** (`Alt+Pijltjes` / USB-Muis) |
-| `BRUN "WAVPLAY"` | `SD : DRIVE 0 : BRUN "WAVPLAY"` | Start **SD-Kaart `.WAV` & PCM Audio Studio** (6 `.WAV`-tracks, Oscilloscoop, VU-Meters, Scrubbing, Muis + FM-Synth) |
+| `BRUN "MP3PLAY"` / `"WAVPLAY"` | `SD : DRIVE 0 : BRUN "MP3PLAY"` | Start **MP3Commander 2.0** (Midnight-Commander Dual-Pane `.MP3` & `.WAV` Speler via Hardware Audio Hulp-CPU, 16-Band Spectrum Equalizer, Auto-DJ & Background Play) |
 | `CAT` / `SD` / `SDRAM` / `DRIVE` | `SD : DRIVE 0 : CAT` | Beheert bestanden op MicroSD-kaart en 4 MB SDRAM-Disk |
 | `SAVE` / `LOAD` / `BSAVE` / `BLOAD` | `SAVE "GAME"` / `BLOAD "LEESMIJ",$6000` | Slaat BASIC of geheugenblok op en laadt het weer in |
 | `BRUN MC` / `BRUN READER` | `SD : BRUN MC` | Start Midnight Commander (`$9000`) of TextReader/Hex-viewer (`$8000`) |
