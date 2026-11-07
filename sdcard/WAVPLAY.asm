@@ -773,7 +773,7 @@ LAPS_MP3_RT_OK:
         LDA TOTAL_PG_HI
         CMP #3
         BCC LAPS_MP3_SHORT
-        LDA #16
+        LDA #17
         STA PLAY_START_BANK
         STA CUR_LOAD_BANK
         LDA #0
@@ -832,6 +832,7 @@ LAPS_SETUP_WAV:
         CLC
         ADC SEL_WAV
         STA PLAY_IDX
+        ADC #1
         STA PLAY_START_BANK
         STA CUR_LOAD_BANK
 
