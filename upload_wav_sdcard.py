@@ -761,12 +761,12 @@ def send_basic_line(ser, line, wait=0.25):
     return buf.decode("ascii", errors="ignore")
 
 
-def install_streamer_stub(ser, streamer_code):
+def install_streamer_stub(ser, streamer_code, base_addr=0x7E00):
     sd_tools.ensure_basic_prompt(ser)
     send_basic_line(ser, "CLS", wait=0.3)
     for i in range(0, len(streamer_code), 7):
         chunk = streamer_code[i : i + 7]
-        stmts = [f"POKE ${0x7E00 + i + j:04X},${b:02X}" for j, b in enumerate(chunk)]
+        stmts = [f"POKE ${base_addr + i + j:04X},${b:02X}" for j, b in enumerate(chunk)]
         send_basic_line(ser, ":".join(stmts), wait=0.35)
 
 
@@ -828,7 +828,7 @@ def upload_sectors_via_basic(ser, start_sector, data_bytes, label="SD"):
 
 
 RAM_STREAMER_ASM = """
-        ORG $7E00
+        ORG $0600
         LDA #$00
         STA $60
         LDA #$80
@@ -883,11 +883,11 @@ def install_and_run_wekker(ser):
     wekker_bin = open(wekker_bin_path, "rb").read()
     padded = wekker_bin + b"\x00" * (13 * 256 - len(wekker_bin))
     _, stub = sd_tools.assemble_6502_source(RAM_STREAMER_ASM)
-    print("Installeren van snelle RAM-Loader ($7E00) voor WEKKER v5.0 (8 .WAV geluiden)...")
-    install_streamer_stub(ser, stub)
+    print("Installeren van snelle BSRAM-Loader ($0600) voor WEKKER v5.0 (8 .WAV geluiden)...")
+    install_streamer_stub(ser, stub, base_addr=0x0600)
     if ser.in_waiting:
         ser.read(ser.in_waiting)
-    ser.write(b"CALL $7E00\r")
+    ser.write(b"CALL $0600\r")
     t0 = time.time()
     buf = b""
     while time.time() - t0 < 2.0:

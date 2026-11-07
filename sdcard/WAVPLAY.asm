@@ -58,11 +58,14 @@ ROM_SILENCE     = $E8DC
 ROM_SD_INIT     = $E96A
 ROM_READ_SEC    = $EA67
 
-MP3_DIR_BUF     = $7800         ; 512B SD-kaart MP3 Directory buffer (Sector $2001)
-WAV_DIR_BUF     = $7A00         ; 512B SD-kaart WAV Directory buffer (Sector $2000)
+MP3_DIR_BUF     = $2800         ; 512B SD-kaart MP3 Directory buffer in BSRAM ($2800-$29FF)
+WAV_DIR_BUF     = $2A00         ; 512B SD-kaart WAV Directory buffer in BSRAM ($2A00-$2BFF)
 SEC_TMP_BUF     = $0600         ; 512B Sector laad-buffer in snelle interne BSRAM ($0600-$07FF)
+MP3_CACHED      = $0280         ; 8B MP3 cache-vlaggen in BSRAM ($0280-$0287)
+WAV_CACHED      = $0288         ; 16B WAV cache-vlaggen in BSRAM ($0288-$0297)
 BSRAM_COPY_SEC  = $02C0         ; Snelle BSRAM 512B sector -> SDRAM kopieer-routine
 BSRAM_RD_SAMPLE = $02F5         ; Snelle BSRAM audio-sample lezer ($A012 -> $A014)
+STR_MP3_SIZE    = $02FC         ; 10B "00:16 MP3",0 buffer in BSRAM ($02FC-$0305)
 
 ; Zero-Page variabelen ($40..$6A)
 ZP_X_LO         = $40
@@ -111,7 +114,7 @@ REM_BG_BANKS    = $6A
 
 START:
         CLD
-        LDX #60
+        LDX #70
 INIT_BSRAM_LP:
         LDA BSRAM_SRC,X
         STA BSRAM_COPY_SEC,X
@@ -1282,6 +1285,9 @@ DFU_BOX_LP:
         JMP DRAW_TRANSPORT_BTNS
 
 DRAW_BOX_FROM_TBL:
+        LDA UI_BOX_TBL+7,X
+DRAW_BOX_WITH_COL:
+        STA ZP_COL
         LDA UI_BOX_TBL,X
         STA ZP_X_LO
         LDA UI_BOX_TBL+1,X
@@ -1296,8 +1302,6 @@ DRAW_BOX_FROM_TBL:
         STA ZP_W_HI
         LDA UI_BOX_TBL+6,X
         STA ZP_H_LO
-        LDA UI_BOX_TBL+7,X
-        STA ZP_COL
         JMP GPU_RECT
 
 SET_XY:
@@ -1329,8 +1333,7 @@ DRAW_MP3_PANE:
 DMP_HDR_ACT:
         LDA #$FC
 DMP_HDR_GO:
-        STA UI_BOX_TBL+71
-        JSR DRAW_BOX_FROM_TBL
+        JSR DRAW_BOX_WITH_COL
 
         LDA #16
         LDX #0
@@ -1473,8 +1476,7 @@ DRAW_WAV_PANE:
 DWP_HDR_ACT:
         LDA #$FC
 DWP_HDR_GO:
-        STA UI_BOX_TBL+79
-        JSR DRAW_BOX_FROM_TBL
+        JSR DRAW_BOX_WITH_COL
 
         LDA #<334
         LDX #>334
@@ -1945,14 +1947,12 @@ BSRAM_RD_SMP_SRC:
         STA IO_RD_LO
         LDA IO_RD_DATA
         RTS
+STR_MP3_SIZE_SRC:
+        DB "00:16 MP3", 0
 
 ; ============================================================================
 ; Tabellen, UI-Boxen & Teksten
 ; ============================================================================
-MP3_CACHED:
-        DB 0, 0, 0, 0, 0, 0, 0, 0
-WAV_CACHED:
-        DB 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 
 ; UI_BOX_TBL: 13 boxen van 8 bytes (x_lo, x_hi, y_lo, y_hi, w_lo, w_hi, h_lo, col)
 UI_BOX_TBL:
@@ -2011,7 +2011,6 @@ STR_TOP_BAR:      DB "MP3Commander 2.1 | Links: .MP3 (tot 4m!) | Rechts: .WAV (3
 STR_MP3_HDR:      DB "LINKER PANEEL: SD .MP3 LIEDJES", 0
 STR_WAV_HDR1:     DB "RECHTER PANEEL: SD .WAV (PAG 1/2)", 0
 STR_WAV_HDR2:     DB "RECHTER PANEEL: SD .WAV (PAG 2/2)", 0
-STR_MP3_SIZE:     DB "00:16 MP3", 0
 STR_WAV_SIZE:     DB "00:04 WAV", 0
 STR_NOW_LBL:      DB "NU SPEELT:", 0
 STR_STAT_MP3:     DB "HULP-CPU ($A018): .MP3 STREAMING ACTIEF", 0
