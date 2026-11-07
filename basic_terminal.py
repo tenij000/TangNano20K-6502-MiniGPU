@@ -6,6 +6,7 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.request
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, simpledialog
 
@@ -56,6 +57,35 @@ def _release_previous_instance():
     try:
         with open(PID_FILE, "w", encoding="utf-8") as f:
             f.write(str(my_pid))
+    except Exception:
+        pass
+
+
+def _release_dummies_server_port():
+    """Als dummies_server.py (op poort 8765) COM6 vasthoudt, vraag die dan netjes om COM6 vrij te geven."""
+    try:
+        req = urllib.request.Request(
+            "http://127.0.0.1:8765/api/disconnect",
+            data=b"{}",
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        urllib.request.urlopen(req, timeout=0.6)
+        time.sleep(0.15)
+    except Exception:
+        pass
+
+
+def _restore_dummies_server_port(port="COM6"):
+    """Geef COM6 bij afsluiten van basic_terminal.py weer terug aan dummies_server.py."""
+    try:
+        req = urllib.request.Request(
+            "http://127.0.0.1:8765/api/connect",
+            data=f'{{"port":"{port}"}}'.encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        urllib.request.urlopen(req, timeout=0.6)
     except Exception:
         pass
 
@@ -389,12 +419,13 @@ class BasicTerminalControlCenter:
         tab = tk.Frame(self.nb, bg="#1e293b", padx=8, pady=8)
         self.nb.add(tab, text="🟦 Midnight Commander (MC)")
 
-        # 1. Start / Herstart MC + Paneel wisselen
+        # 1. Start / Herstart MC + MP3PLAY + Paneel wisselen
         top_row = tk.Frame(tab, bg="#1e293b")
         top_row.pack(fill=tk.X, pady=(0, 8))
-        self._make_btn(top_row, "🚀 Start MC vanaf SD", lambda: self.launch_sd_app("MC"), bg="#1d4ed8", width=20).pack(side=tk.LEFT, padx=3)
-        self._make_btn(top_row, "↹ Wissel L/R Paneel (TAB)", lambda: self.send_raw(b"\t"), bg="#0284c7", width=22).pack(side=tk.LEFT, padx=3)
-        self._make_btn(top_row, "🚪 Sluit MC (0 / Q)", lambda: self.send_raw(b"0"), bg="#dc2626", width=16).pack(side=tk.LEFT, padx=3)
+        self._make_btn(top_row, "🚀 Start MC vanaf SD", lambda: self.launch_sd_app("MC"), bg="#1d4ed8", width=18).pack(side=tk.LEFT, padx=3)
+        self._make_btn(top_row, "🎵 Start MP3PLAY", lambda: self.launch_sd_app("MP3PLAY"), bg="#15803d", width=16).pack(side=tk.LEFT, padx=3)
+        self._make_btn(top_row, "↹ Wissel L/R Paneel (TAB)", lambda: self.send_raw(b"\t"), bg="#0284c7", width=20).pack(side=tk.LEFT, padx=3)
+        self._make_btn(top_row, "🚪 Sluit MC (0 / Q)", lambda: self.send_raw(b"0"), bg="#dc2626", width=15).pack(side=tk.LEFT, padx=3)
 
         # 2. Pull-Down Menu Balk knoppen (Left, File, Command, Options, Right)
         menu_box = tk.LabelFrame(
@@ -687,6 +718,7 @@ class BasicTerminalControlCenter:
                 return True
             port = self.port_var.get().strip() or sd_tools.find_tang_port("COM6")
             self.port_var.set(port)
+            _release_dummies_server_port()
             last_err = None
             for attempt in range(max(1, retries)):
                 try:
@@ -1163,7 +1195,9 @@ class BasicTerminalControlCenter:
 
     def on_close(self):
         self.running = False
+        port = self.port_var.get().strip() or "COM6"
         self.disconnect_serial()
+        _restore_dummies_server_port(port)
         self.root.destroy()
 
 
@@ -1172,6 +1206,7 @@ def run_cli_mode():
     print("============================================================")
     print(f"  DONDERDAG MiniGPU-BASIC PC-Terminal ({PORT} @ {BAUD} baud)")
     print("============================================================")
+    _release_dummies_server_port()
     ser = serial.Serial(PORT, BAUD, timeout=0.005)
     last_joy = 0
     pulse_joy = 0
