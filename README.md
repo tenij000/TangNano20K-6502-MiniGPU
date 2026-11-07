@@ -119,9 +119,14 @@ Bij het opstarten zitten deze 16×16 sprites direct klaar in het FPGA-geheugen:
   - `$A018`: Start SDRAM-bank (`0..61`, bijv. `60` voor een 128 KB / 16,4-seconden `.MP3`-stream over Bank `60..61`).
   - `$A019` / `$A01A`: Aantal pagina's van 256 bytes (`Lo` / `Hi`, bijv. `$0200` = 512 pagina's = 128 KB).
   - `$A01B`: Start/Stop & Snelheid (`0` = Stop, `1..7` = One-shot op rate `1..7`, `129..135` (`+128`) = Auto-Loop op rate `1..7`). Lezen met `PEEK($A01B)` geeft `1` zolang de Hulp-CPU speelt.
+- **MP3Commander 2.1 (`BRUN "MP3PLAY"` / `sdcard/MP3PLAY.asm`)**:
+  - Volledige Midnight-Commander Dual-Pane `.MP3`- & `.WAV`-speler in 6502 machinecode op `$8000` met 16-Band Live Spectrum Equalizer, muis-, joypad- en toetsenbordbesturing:
+    - **Linker Paneel (`.MP3` op MicroSD Sector `$2001` / `$3000..$AFFF`)**: 8 lange/complete `.MP3`-liedjes (tot `30` SDRAM-banken = `1.920 KB` = **4m06s** per nummer!) met automatische background-streaming vanaf de MicroSD-kaart naar SDRAM terwijl de Hardware Audio Hulp-CPU speelt.
+    - **Rechter Paneel (`.WAV` op MicroSD Sector `$2000` / `$2010..$240F`)**: 16 `.WAV`-geluiden op Pagina 1/2 en Pagina 2/2 (`32 KB` per track).
+    - **Auto-DJ Album-modus (`L`)**, live Sample-Rate/Pitch schakelaar (`S`: `8k/11k/16k/22k Hz`), 4-kanaals FM-Synth Pad begeleiding (`M`), en Background-Play (`B`: muziek speelt door terwijl je terugkeert naar `MC` of BASIC!).
 - **Zuivere 48 kHz HDMI-Audio Reconstructie**:
   - 3-polig snelheids-adaptief reconstructiefilter (-18 dB/octaaf) in `src/audio_synth.v` + fase-coherente L/R stereo-uitvoer zonder chorus-vervorming of clipping, gecombineerd met een 101-taps Blackman-windowed Sinc anti-aliasing resampler in `upload_wav_sdcard.py`.
-- **WAV & MP3 Studio GUI (`wav_gui.py` / `start_wav_gui.bat`)**:
-  - Grafische Windows-tool om zowel `.WAV`- als `.MP3`-bestanden (automatisch gedecodeerd via Windows ACM `msacm32.dll`) te beluisteren, bij te snijden en naar de 16 MicroSD-slots of als 16-seconden stream naar de Audio Hulp-CPU te sturen.
+- **MP3 & WAV Studio GUI (`wav_gui.py` / `mp3_studio.bat` / `wav_studio.bat`)**:
+  - Grafische Windows-tool waarmee je elk `.MP3`- of `.WAV`-bestand op je PC (automatisch gedecodeerd via Windows Media / ACM) kunt beluisteren, het gewenste aantal SDRAM-banken (`1` t/m `30` banken = `8s` t/m `4m06s`) en sample-rate (`8k..32k Hz`) kunt kiezen, en direct met één klik naar een van de **8 MicroSD `.MP3`-slots (`Sector $2001`)** of **16 `.WAV`-slots (`Sector $2000`)** kunt converteren en uploaden.
 - **Interactief Handboek (`MiniGPU_BASIC_voor_Dummies.html` / `dummies_boek.bat`)**:
-  - Volledig Nederlandstalig handboek met live 1-klik **Stuur naar Tang Nano (`COM6`)** knoppen, inclusief `.WAV` Jukebox en 16,4-seconden `.MP3` Visualizer.
+  - Volledig Nederlandstalig handboek met live 1-klik **Stuur naar Tang Nano (`COM6`)** knoppen, inclusief `.WAV` Jukebox en `.MP3` Visualizer met Hulp-CPU streaming.
