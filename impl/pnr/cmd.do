@@ -1,8 +1,8 @@
--d E:\MiniGPU_SDRAM_Framebuffer_Backup\impl\gwsynthesis\MiniGPU.vg
+-d C:\6nov26\impl\gwsynthesis\MiniGPU_BASIC.vg
 -p GW2AR-18C-QFN88-8
 -pn GW2AR-LV18QN88C8/I7
--cst E:\MiniGPU_SDRAM_Framebuffer_Backup\src\nano20k.cst
--cfg E:\MiniGPU_SDRAM_Framebuffer_Backup\impl\pnr\device.cfg
+-cst C:\6nov26\src\nano20k.cst
+-cfg C:\6nov26\impl\pnr\device.cfg
 -bit
 -tr
 -ph

@@ -1,0 +1,205 @@
+GowinSynthesis start
+Running parser ...
+Analyzing Verilog file 'C:\6nov26\src\top.v'
+Analyzing Verilog file 'C:\6nov26\src\basic_ext_rom.v'
+Analyzing Verilog file 'C:\6nov26\src\ALU.v'
+Analyzing Verilog file 'C:\6nov26\src\cpu.v'
+Analyzing Verilog file 'C:\6nov26\src\ps2_keyboard.v'
+Analyzing Verilog file 'C:\6nov26\src\sd_spi.v'
+Analyzing Verilog file 'C:\6nov26\src\uart_rx.v'
+Analyzing Verilog file 'C:\6nov26\src\uart_tx.v'
+Analyzing Verilog file 'C:\6nov26\src\uart_tx_fifo.v'
+Analyzing Verilog file 'C:\6nov26\src\gowin_pll_hdmi.v'
+Analyzing Verilog file 'C:\6nov26\src\hdmi2\audio_clock_regeneration_packet.sv'
+WARN  (EX2478) : Non-net output port 'clk_audio_counter_wrap' cannot be initialized at declaration in SystemVerilog mode("C:\6nov26\src\hdmi2\audio_clock_regeneration_packet.sv":13)
+Analyzing Verilog file 'C:\6nov26\src\hdmi2\audio_info_frame.sv'
+Analyzing Verilog file 'C:\6nov26\src\hdmi2\audio_sample_packet.sv'
+Analyzing Verilog file 'C:\6nov26\src\hdmi2\auxiliary_video_information_info_frame.sv'
+Analyzing Verilog file 'C:\6nov26\src\hdmi2\hdmi.sv'
+WARN  (EX2478) : Non-net output port 'cx' cannot be initialized at declaration in SystemVerilog mode("C:\6nov26\src\hdmi2\hdmi.sv":81)
+WARN  (EX2478) : Non-net output port 'cy' cannot be initialized at declaration in SystemVerilog mode("C:\6nov26\src\hdmi2\hdmi.sv":82)
+Analyzing Verilog file 'C:\6nov26\src\hdmi2\packet_assembler.sv'
+WARN  (EX2478) : Non-net output port 'counter' cannot be initialized at declaration in SystemVerilog mode("C:\6nov26\src\hdmi2\packet_assembler.sv":11)
+Analyzing Verilog file 'C:\6nov26\src\hdmi2\packet_picker.sv'
+Analyzing Verilog file 'C:\6nov26\src\hdmi2\serializer.sv'
+Analyzing Verilog file 'C:\6nov26\src\hdmi2\source_product_description_info_frame.sv'
+Analyzing Verilog file 'C:\6nov26\src\hdmi2\tmds_channel.sv'
+WARN  (EX2478) : Non-net output port 'tmds' cannot be initialized at declaration in SystemVerilog mode("C:\6nov26\src\hdmi2\tmds_channel.sv":16)
+Analyzing Verilog file 'C:\6nov26\src\sdram_framebuffer.v'
+WARN  (EX2478) : Non-net output port 'cpu_gpu_ack_toggle' cannot be initialized at declaration in SystemVerilog mode("C:\6nov26\src\sdram_framebuffer.v":15)
+WARN  (EX2478) : Non-net output port 'restore_bg_ack_toggle' cannot be initialized at declaration in SystemVerilog mode("C:\6nov26\src\sdram_framebuffer.v":22)
+WARN  (EX2478) : Non-net output port 'rd_rdata' cannot be initialized at declaration in SystemVerilog mode("C:\6nov26\src\sdram_framebuffer.v":29)
+WARN  (EX2478) : Non-net output port 'rd_ack_toggle' cannot be initialized at declaration in SystemVerilog mode("C:\6nov26\src\sdram_framebuffer.v":30)
+Analyzing Verilog file 'C:\6nov26\src\gpu_engine.v'
+Analyzing Verilog file 'C:\6nov26\src\terminal.v'
+Analyzing Verilog file 'C:\6nov26\src\sdram.v'
+Analyzing Verilog file 'C:\6nov26\src\bg_layer.v'
+Analyzing Verilog file 'C:\6nov26\src\space_planets_bg.v'
+Analyzing Verilog file 'C:\6nov26\src\farm_landscape_bg.v'
+Analyzing Verilog file 'C:\6nov26\src\big_sprite_engine.v'
+Analyzing Verilog file 'C:\6nov26\src\audio_synth.v'
+Compiling module 'top'("C:\6nov26\src\top.v":3)
+Extracting RAM for identifier 'cpu_ram_lo'("C:\6nov26\src\top.v":177)
+Extracting RAM for identifier 'cpu_ram_hi'("C:\6nov26\src\top.v":178)
+Extracting RAM for identifier 'cpu_rom'("C:\6nov26\src\top.v":179)
+Compiling module 'gowin_pll_hdmi'("C:\6nov26\src\gowin_pll_hdmi.v":10)
+WARN  (EX3791) : Expression size 17 truncated to fit in target size 16("C:\6nov26\src\top.v":59)
+Compiling module 'uart_rx'("C:\6nov26\src\uart_rx.v":4)
+WARN  (EX3791) : Expression size 17 truncated to fit in target size 16("C:\6nov26\src\uart_rx.v":62)
+WARN  (EX3791) : Expression size 5 truncated to fit in target size 4("C:\6nov26\src\uart_rx.v":73)
+WARN  (EX3791) : Expression size 17 truncated to fit in target size 16("C:\6nov26\src\uart_rx.v":76)
+WARN  (EX3791) : Expression size 17 truncated to fit in target size 16("C:\6nov26\src\uart_rx.v":85)
+Compiling module 'uart_tx_fifo'("C:\6nov26\src\uart_tx_fifo.v":1)
+Extracting RAM for identifier 'fifo_mem'("C:\6nov26\src\uart_tx_fifo.v":14)
+WARN  (EX3791) : Expression size 13 truncated to fit in target size 12("C:\6nov26\src\uart_tx_fifo.v":39)
+WARN  (EX3791) : Expression size 17 truncated to fit in target size 16("C:\6nov26\src\uart_tx_fifo.v":45)
+WARN  (EX3791) : Expression size 5 truncated to fit in target size 4("C:\6nov26\src\uart_tx_fifo.v":51)
+WARN  (EX3791) : Expression size 13 truncated to fit in target size 12("C:\6nov26\src\uart_tx_fifo.v":61)
+Compiling module 'ps2_keyboard'("C:\6nov26\src\ps2_keyboard.v":3)
+Compiling module 'sd_spi'("C:\6nov26\src\sd_spi.v":3)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 24("C:\6nov26\src\top.v":272)
+Compiling module 'basic_ext_rom'("C:\6nov26\src\basic_ext_rom.v":2)
+Compiling module 'cpu'("C:\6nov26\src\cpu.v":21)
+Extracting RAM for identifier 'AXYS'("C:\6nov26\src\cpu.v":49)
+Compiling module 'ALU'("C:\6nov26\src\ALU.v":20)
+WARN  (EX3791) : Expression size 9 truncated to fit in target size 8("C:\6nov26\src\ALU.v":73)
+WARN  (EX3073) : Port 'enabled' remains unconnected for this instance("C:\6nov26\src\sdram_framebuffer.v":731)
+Compiling module 'sdram_framebuffer'("C:\6nov26\src\sdram_framebuffer.v":3)
+Extracting RAM for identifier 'line_buffer'("C:\6nov26\src\sdram_framebuffer.v":162)
+WARN  (EX3791) : Expression size 10 truncated to fit in target size 9("C:\6nov26\src\sdram_framebuffer.v":95)
+WARN  (EX3791) : Expression size 11 truncated to fit in target size 10("C:\6nov26\src\sdram_framebuffer.v":97)
+WARN  (EX3791) : Expression size 10 truncated to fit in target size 9("C:\6nov26\src\sdram_framebuffer.v":129)
+WARN  (EX3791) : Expression size 9 truncated to fit in target size 8("C:\6nov26\src\sdram_framebuffer.v":150)
+Compiling module 'gpu_engine'("C:\6nov26\src\gpu_engine.v":3)
+Extracting RAM for identifier 'sprite_ram'("C:\6nov26\src\gpu_engine.v":289)
+Extracting RAM for identifier 'font_rom'("C:\6nov26\src\gpu_engine.v":298)
+WARN  (EX3791) : Expression size 10 truncated to fit in target size 9("C:\6nov26\src\gpu_engine.v":169)
+WARN  (EX3791) : Expression size 10 truncated to fit in target size 9("C:\6nov26\src\gpu_engine.v":212)
+WARN  (EX3791) : Expression size 10 truncated to fit in target size 9("C:\6nov26\src\gpu_engine.v":219)
+WARN  (EX3791) : Expression size 10 truncated to fit in target size 9("C:\6nov26\src\gpu_engine.v":242)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 13("C:\6nov26\src\gpu_engine.v":330)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 13("C:\6nov26\src\gpu_engine.v":331)
+WARN  (EX3791) : Expression size 22 truncated to fit in target size 21("C:\6nov26\src\gpu_engine.v":382)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 13("C:\6nov26\src\gpu_engine.v":417)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 13("C:\6nov26\src\gpu_engine.v":421)
+WARN  (EX3791) : Expression size 4 truncated to fit in target size 3("C:\6nov26\src\gpu_engine.v":456)
+WARN  (EX3791) : Expression size 4 truncated to fit in target size 3("C:\6nov26\src\gpu_engine.v":464)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 13("C:\6nov26\src\gpu_engine.v":468)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 13("C:\6nov26\src\gpu_engine.v":475)
+WARN  (EX3791) : Expression size 14 truncated to fit in target size 13("C:\6nov26\src\gpu_engine.v":483)
+WARN  (EX3791) : Expression size 14 truncated to fit in target size 13("C:\6nov26\src\gpu_engine.v":486)
+WARN  (EX3791) : Expression size 14 truncated to fit in target size 13("C:\6nov26\src\gpu_engine.v":491)
+WARN  (EX3791) : Expression size 14 truncated to fit in target size 13("C:\6nov26\src\gpu_engine.v":494)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 13("C:\6nov26\src\gpu_engine.v":509)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 13("C:\6nov26\src\gpu_engine.v":510)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 13("C:\6nov26\src\gpu_engine.v":513)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 13("C:\6nov26\src\gpu_engine.v":516)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 14("C:\6nov26\src\gpu_engine.v":538)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 13("C:\6nov26\src\gpu_engine.v":539)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 14("C:\6nov26\src\gpu_engine.v":547)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 13("C:\6nov26\src\gpu_engine.v":548)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 13("C:\6nov26\src\gpu_engine.v":549)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 13("C:\6nov26\src\gpu_engine.v":655)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 13("C:\6nov26\src\gpu_engine.v":656)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 13("C:\6nov26\src\gpu_engine.v":659)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 13("C:\6nov26\src\gpu_engine.v":662)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 13("C:\6nov26\src\gpu_engine.v":673)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 13("C:\6nov26\src\gpu_engine.v":674)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 13("C:\6nov26\src\gpu_engine.v":677)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 13("C:\6nov26\src\gpu_engine.v":680)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 13("C:\6nov26\src\gpu_engine.v":706)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 13("C:\6nov26\src\gpu_engine.v":710)
+WARN  (EX3791) : Expression size 22 truncated to fit in target size 21("C:\6nov26\src\gpu_engine.v":738)
+WARN  (EX3791) : Expression size 5 truncated to fit in target size 4("C:\6nov26\src\gpu_engine.v":770)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 13("C:\6nov26\src\gpu_engine.v":771)
+WARN  (EX3791) : Expression size 5 truncated to fit in target size 4("C:\6nov26\src\gpu_engine.v":775)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 13("C:\6nov26\src\gpu_engine.v":776)
+WARN  (EX3791) : Expression size 22 truncated to fit in target size 21("C:\6nov26\src\gpu_engine.v":793)
+WARN  (EX3791) : Expression size 5 truncated to fit in target size 4("C:\6nov26\src\gpu_engine.v":825)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 13("C:\6nov26\src\gpu_engine.v":826)
+WARN  (EX3791) : Expression size 5 truncated to fit in target size 4("C:\6nov26\src\gpu_engine.v":830)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 13("C:\6nov26\src\gpu_engine.v":831)
+Compiling module 'bg_layer'("C:\6nov26\src\bg_layer.v":3)
+Extracting RAM for identifier 'tileset_ram'("C:\6nov26\src\bg_layer.v":28)
+Extracting RAM for identifier 'tilemap_ram'("C:\6nov26\src\bg_layer.v":30)
+WARN  (EX3791) : Expression size 12 truncated to fit in target size 11("C:\6nov26\src\bg_layer.v":45)
+Compiling module 'space_planets_bg'("C:\6nov26\src\space_planets_bg.v":19)
+WARN  (EX3791) : Expression size 15 truncated to fit in target size 13("C:\6nov26\src\space_planets_bg.v":275)
+Compiling module 'farm_landscape_bg'("C:\6nov26\src\farm_landscape_bg.v":23)
+WARN  (EX3791) : Expression size 9 truncated to fit in target size 4("C:\6nov26\src\farm_landscape_bg.v":125)
+WARN  (EX3791) : Expression size 9 truncated to fit in target size 4("C:\6nov26\src\farm_landscape_bg.v":127)
+WARN  (EX3791) : Expression size 9 truncated to fit in target size 4("C:\6nov26\src\farm_landscape_bg.v":129)
+WARN  (EX3791) : Expression size 9 truncated to fit in target size 4("C:\6nov26\src\farm_landscape_bg.v":131)
+WARN  (EX3791) : Expression size 9 truncated to fit in target size 4("C:\6nov26\src\farm_landscape_bg.v":133)
+WARN  (EX3791) : Expression size 9 truncated to fit in target size 4("C:\6nov26\src\farm_landscape_bg.v":135)
+WARN  (EX3791) : Expression size 9 truncated to fit in target size 4("C:\6nov26\src\farm_landscape_bg.v":137)
+WARN  (EX3791) : Expression size 9 truncated to fit in target size 4("C:\6nov26\src\farm_landscape_bg.v":139)
+WARN  (EX3791) : Expression size 9 truncated to fit in target size 4("C:\6nov26\src\farm_landscape_bg.v":141)
+WARN  (EX3791) : Expression size 10 truncated to fit in target size 8("C:\6nov26\src\farm_landscape_bg.v":205)
+Compiling module 'big_sprite_engine'("C:\6nov26\src\big_sprite_engine.v":8)
+Extracting RAM for identifier 'ram_slot0'("C:\6nov26\src\big_sprite_engine.v":39)
+Extracting RAM for identifier 'ram_slot1'("C:\6nov26\src\big_sprite_engine.v":40)
+WARN  (EX3791) : Expression size 11 truncated to fit in target size 10("C:\6nov26\src\sdram_framebuffer.v":546)
+Compiling module 'sdram(FREQ=74250000)'("C:\6nov26\src\sdram.v":27)
+WARN  (EX3791) : Expression size 16 truncated to fit in target size 15("C:\6nov26\src\sdram.v":281)
+WARN  (EX3670) : Actual bit length 12 differs from formal bit length 11 for port 'cx'("C:\6nov26\src\top.v":919)
+WARN  (EX3670) : Actual bit length 12 differs from formal bit length 10 for port 'cy'("C:\6nov26\src\top.v":920)
+Compiling module 'terminal'("C:\6nov26\src\terminal.v":3)
+Extracting RAM for identifier 'font_rom'("C:\6nov26\src\terminal.v":24)
+Extracting RAM for identifier 'text_ram'("C:\6nov26\src\terminal.v":30)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 6("C:\6nov26\src\terminal.v":54)
+WARN  (EX3791) : Expression size 7 truncated to fit in target size 6("C:\6nov26\src\terminal.v":119)
+WARN  (EX3791) : Expression size 7 truncated to fit in target size 6("C:\6nov26\src\terminal.v":146)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 6("C:\6nov26\src\terminal.v":168)
+Compiling module 'audio_synth'("C:\6nov26\src\audio_synth.v":20)
+Extracting RAM for identifier 'ch_vol'("C:\6nov26\src\audio_synth.v":42)
+Extracting RAM for identifier 'ch_phase2'("C:\6nov26\src\audio_synth.v":45)
+Extracting RAM for identifier 'ch_bright_env'("C:\6nov26\src\audio_synth.v":49)
+Extracting RAM for identifier 'ch_attack_ph'("C:\6nov26\src\audio_synth.v":50)
+Extracting RAM for identifier 'ch_write_age'("C:\6nov26\src\audio_synth.v":51)
+Extracting RAM for identifier 'ch_lpf'("C:\6nov26\src\audio_synth.v":54)
+Extracting RAM for identifier 'chorus_buf'("C:\6nov26\src\audio_synth.v":97)
+WARN  (EX3791) : Expression size 17 truncated to fit in target size 16("C:\6nov26\src\audio_synth.v":374)
+WARN  (EX3791) : Expression size 17 truncated to fit in target size 16("C:\6nov26\src\audio_synth.v":375)
+Compiling module 'hdmi(VIDEO_ID_CODE=4,VIDEO_REFRESH_RATE=60.0,AUDIO_RATE=48000)'("C:\6nov26\src\hdmi2\hdmi.sv":4)
+Compiling module 'packet_picker(VIDEO_RATE=74250000.0,IT_CONTENT=1'b1,AUDIO_BIT_WIDTH=16,AUDIO_RATE=48000,VENDOR_NAME=64'b0101010101101110011010110110111001101111011101110110111000000000,PRODUCT_DESCRIPTION=128'b01000110010100000100011101000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000,SOURCE_DEVICE_INFORMATION=8'b00000000)'("C:\6nov26\src\hdmi2\packet_picker.sv":4)
+Extracting RAM for identifier 'audio_sample_word_buffer'("C:\6nov26\src\hdmi2\packet_picker.sv":100)
+Compiling module 'audio_clock_regeneration_packet(VIDEO_RATE=74250000.0,AUDIO_RATE=48000)'("C:\6nov26\src\hdmi2\audio_clock_regeneration_packet.sv":5)
+Compiling module 'audio_sample_packet(SAMPLING_FREQUENCY=4'b0010,WORD_LENGTH=4'b0010)'("C:\6nov26\src\hdmi2\audio_sample_packet.sv":8)
+WARN  (EX3780) : Using initial value of 'CHANNEL_LEFT' since it is never assigned("C:\6nov26\src\hdmi2\audio_sample_packet.sv":63)
+WARN  (EX3780) : Using initial value of 'CHANNEL_RIGHT' since it is never assigned("C:\6nov26\src\hdmi2\audio_sample_packet.sv":64)
+Compiling module 'auxiliary_video_information_info_frame(IT_CONTENT=1'b1)'("C:\6nov26\src\hdmi2\auxiliary_video_information_info_frame.sv":5)
+Compiling module 'source_product_description_info_frame(VENDOR_NAME=64'b0101010101101110011010110110111001101111011101110110111000000000,PRODUCT_DESCRIPTION=128'b01000110010100000100011101000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000,SOURCE_DEVICE_INFORMATION=8'b00000000)'("C:\6nov26\src\hdmi2\source_product_description_info_frame.sv":5)
+Compiling module 'audio_info_frame'("C:\6nov26\src\hdmi2\audio_info_frame.sv":5)
+Compiling module 'packet_assembler'("C:\6nov26\src\hdmi2\packet_assembler.sv":4)
+Compiling module 'tmds_channel'("C:\6nov26\src\hdmi2\tmds_channel.sv":4)
+Compiling module 'tmds_channel(CN=1)'("C:\6nov26\src\hdmi2\tmds_channel.sv":4)
+Compiling module 'tmds_channel(CN=2)'("C:\6nov26\src\hdmi2\tmds_channel.sv":4)
+Compiling module 'serializer(VIDEO_RATE=74250000.0)'("C:\6nov26\src\hdmi2\serializer.sv":3)
+WARN  (EX3670) : Actual bit length 12 differs from formal bit length 11 for port 'cx'("C:\6nov26\src\top.v":1054)
+WARN  (EX3670) : Actual bit length 12 differs from formal bit length 10 for port 'cy'("C:\6nov26\src\top.v":1055)
+NOTE  (EX0101) : Current top module is "top"
+WARN  (EX0206) : Instance "rpll_inst" 's parameter "DEVICE" value invalid("C:\6nov26\src\gowin_pll_hdmi.v":39)
+[5%] Running netlist conversion ...
+Running device independent optimization ...
+[10%] Optimizing Phase 0 completed
+[15%] Optimizing Phase 1 completed
+[25%] Optimizing Phase 2 completed
+Running inference ...
+[30%] Inferring Phase 0 completed
+[40%] Inferring Phase 1 completed
+[50%] Inferring Phase 2 completed
+[55%] Inferring Phase 3 completed
+Running technical mapping ...
+[60%] Tech-Mapping Phase 0 completed
+[65%] Tech-Mapping Phase 1 completed
+[75%] Tech-Mapping Phase 2 completed
+[80%] Tech-Mapping Phase 3 completed
+[90%] Tech-Mapping Phase 4 completed
+WARN  (NL0002) : The module "audio_info_frame" instantiated to "audio_info_frame" is swept in optimizing("C:\6nov26\src\hdmi2\packet_picker.sv":163)
+WARN  (NL0002) : The module "audio_sample_packet" instantiated to "audio_sample_packet" is swept in optimizing("C:\6nov26\src\hdmi2\packet_picker.sv":151)
+WARN  (NL0002) : The module "auxiliary_video_information_info_frame" instantiated to "auxiliary_video_information_info_frame" is swept in optimizing("C:\6nov26\src\hdmi2\packet_picker.sv":157)
+WARN  (NL0002) : The module "source_product_description_info_frame" instantiated to "source_product_description_info_frame" is swept in optimizing("C:\6nov26\src\hdmi2\packet_picker.sv":160)
+[95%] Generate netlist file "C:\6nov26\impl\gwsynthesis\MiniGPU_BASIC.vg" completed
+[100%] Generate report file "C:\6nov26\impl\gwsynthesis\MiniGPU_BASIC_syn.rpt.html" completed
+GowinSynthesis finish

@@ -1,0 +1,27 @@
+<?xml version="1" encoding="UTF-8"?>
+<!DOCTYPE ProjectUserData>
+<UserConfig>
+    <Version>1.0</Version>
+    <FlowState>
+        <Process ID="Synthesis" State="2"/>
+        <Process ID="Pnr" State="2"/>
+        <Process ID="Gao" State="2"/>
+        <Process ID="Rtl_Gao" State="2"/>
+        <Process ID="Gvio" State="0"/>
+        <Process ID="Place" State="2"/>
+    </FlowState>
+    <ResultFileList>
+        <ResultFile ResultFileType="RES.netlist" ResultFilePath="impl/gwsynthesis/MiniGPU_BASIC.vg"/>
+        <ResultFile ResultFileType="RES.pnr.bitstream" ResultFilePath="impl/pnr/MiniGPU_BASIC.fs"/>
+        <ResultFile ResultFileType="RES.pnr.pin.rpt" ResultFilePath="impl/pnr/MiniGPU_BASIC.pin.html"/>
+        <ResultFile ResultFileType="RES.pnr.posp.bin" ResultFilePath="impl/pnr/MiniGPU_BASIC.db"/>
+        <ResultFile ResultFileType="RES.pnr.pwr.rpt" ResultFilePath="impl/pnr/MiniGPU_BASIC.power.html"/>
+        <ResultFile ResultFileType="RES.pnr.report" ResultFilePath="impl/pnr/MiniGPU_BASIC.rpt.html"/>
+        <ResultFile ResultFileType="RES.pnr.timing.paths" ResultFilePath="impl/pnr/MiniGPU_BASIC.timing_paths"/>
+        <ResultFile ResultFileType="RES.pnr.timing.rpt" ResultFilePath="impl/pnr/MiniGPU_BASIC.tr.html"/>
+        <ResultFile ResultFileType="RES.syn.report" ResultFilePath="impl/gwsynthesis/MiniGPU_BASIC_syn.rpt.html"/>
+        <ResultFile ResultFileType="RES.syn.resource" ResultFilePath="impl/gwsynthesis/MiniGPU_BASIC_syn_rsc.xml"/>
+    </ResultFileList>
+    <Ui></Ui>
+    <FpUi></FpUi>
+</UserConfig>

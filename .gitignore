@@ -1,17 +1,7 @@
-# Local backup archives & temp folders (kept locally, excluded from GitHub)
-*.zip
-temp_backup/
-tmp_bbc_backup/
-backup plaatje boederij/
 __pycache__/
 *.pyc
-*.log
-Resume with -c (or command below).txt
-
-# Gowin temporary build artifacts (keep final bitstream MiniGPU.fs!)
+.basic_terminal.pid
 impl/temp/
-impl/gwsynthesis/
-impl/pnr/*.db
-impl/pnr/*.bin
-impl/pnr/*.posp
-MiniGPU.gprj.user
+impl/gwsynthesis/*.vg
+wav_tracks/internet_samples/*.wav
+wav_tracks/_*.wav

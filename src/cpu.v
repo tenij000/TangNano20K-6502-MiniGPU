@@ -46,7 +46,7 @@ wire [7:0] DIMUX;       //
 reg  [7:0] IRHOLD;      // Hold for Instruction register 
 reg  IRHOLD_valid;      // Valid instruction in IRHOLD
 
-reg  [7:0] AXYS[3:0];   // A, X, Y and S register file
+(* syn_ramstyle = "registers" *) reg  [7:0] AXYS[3:0];   // A, X, Y and S register file
 
 reg  C = 0;             // carry flag (init at zero to avoid X's in ALU sim)
 reg  Z = 0;             // zero flag
@@ -489,7 +489,8 @@ always @*
  */
 
 always @(posedge clk)
-    adj_bcd <= adc_sbc & D;     // '1' when doing a BCD instruction
+    if( RDY )
+        adj_bcd <= adc_sbc & D;     // '1' when doing a BCD instruction
 
 reg [3:0] ADJL;
 reg [3:0] ADJH;
@@ -741,7 +742,7 @@ always @*
 /*
  * Update C flag when doing ADC/SBC, shift/rotate, compare
  */
-always @(posedge clk )
+always @(posedge clk ) if( RDY )
     if( shift && state == WRITE ) 
         C <= CO;
     else if( state == RTI2 )
@@ -761,7 +762,7 @@ always @(posedge clk )
  * Update Z, N flags when writing A, X, Y, Memory, or when doing compare
  */
 
-always @(posedge clk) 
+always @(posedge clk) if( RDY )
     if( state == WRITE ) 
         Z <= AZ;
     else if( state == RTI2 )
@@ -773,7 +774,7 @@ always @(posedge clk)
             Z <= AZ;
     end
 
-always @(posedge clk)
+always @(posedge clk) if( RDY )
     if( state == WRITE )
         N <= AN;
     else if( state == RTI2 )
@@ -790,7 +791,7 @@ always @(posedge clk)
  * Update I flag
  */
 
-always @(posedge clk)
+always @(posedge clk) if( RDY )
     if( state == BRK3 )
         I <= 1;
     else if( state == RTI2 )
@@ -804,7 +805,7 @@ always @(posedge clk)
 /*
  * Update D flag
  */
-always @(posedge clk ) 
+always @(posedge clk ) if( RDY )
     if( state == RTI2 )
         D <= DIMUX[3];
     else if( state == DECODE ) begin
@@ -816,7 +817,7 @@ always @(posedge clk )
 /*
  * Update V flag
  */
-always @(posedge clk )
+always @(posedge clk ) if( RDY )
     if( state == RTI2 ) 
         V <= DIMUX[6];
     else if( state == DECODE ) begin

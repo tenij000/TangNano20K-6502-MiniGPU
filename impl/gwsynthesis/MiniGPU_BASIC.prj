@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE gowin-synthesis-project>
+<Project>
+    <Version>beta</Version>
+    <Device id="GW2AR-18C" package="QFN88" speed="8" partNumber="GW2AR-LV18QN88C8/I7"/>
+    <FileList>
+        <File path="C:\6nov26\src\top.v" type="verilog"/>
+        <File path="C:\6nov26\src\basic_ext_rom.v" type="verilog"/>
+        <File path="C:\6nov26\src\ALU.v" type="verilog"/>
+        <File path="C:\6nov26\src\cpu.v" type="verilog"/>
+        <File path="C:\6nov26\src\ps2_keyboard.v" type="verilog"/>
+        <File path="C:\6nov26\src\sd_spi.v" type="verilog"/>
+        <File path="C:\6nov26\src\uart_rx.v" type="verilog"/>
+        <File path="C:\6nov26\src\uart_tx.v" type="verilog"/>
+        <File path="C:\6nov26\src\uart_tx_fifo.v" type="verilog"/>
+        <File path="C:\6nov26\src\gowin_pll_hdmi.v" type="verilog"/>
+        <File path="C:\6nov26\src\hdmi2\audio_clock_regeneration_packet.sv" type="verilog"/>
+        <File path="C:\6nov26\src\hdmi2\audio_info_frame.sv" type="verilog"/>
+        <File path="C:\6nov26\src\hdmi2\audio_sample_packet.sv" type="verilog"/>
+        <File path="C:\6nov26\src\hdmi2\auxiliary_video_information_info_frame.sv" type="verilog"/>
+        <File path="C:\6nov26\src\hdmi2\hdmi.sv" type="verilog"/>
+        <File path="C:\6nov26\src\hdmi2\packet_assembler.sv" type="verilog"/>
+        <File path="C:\6nov26\src\hdmi2\packet_picker.sv" type="verilog"/>
+        <File path="C:\6nov26\src\hdmi2\serializer.sv" type="verilog"/>
+        <File path="C:\6nov26\src\hdmi2\source_product_description_info_frame.sv" type="verilog"/>
+        <File path="C:\6nov26\src\hdmi2\tmds_channel.sv" type="verilog"/>
+        <File path="C:\6nov26\src\sdram_framebuffer.v" type="verilog"/>
+        <File path="C:\6nov26\src\gpu_engine.v" type="verilog"/>
+        <File path="C:\6nov26\src\terminal.v" type="verilog"/>
+        <File path="C:\6nov26\src\sdram.v" type="verilog"/>
+        <File path="C:\6nov26\src\bg_layer.v" type="verilog"/>
+        <File path="C:\6nov26\src\space_planets_bg.v" type="verilog"/>
+        <File path="C:\6nov26\src\farm_landscape_bg.v" type="verilog"/>
+        <File path="C:\6nov26\src\big_sprite_engine.v" type="verilog"/>
+        <File path="C:\6nov26\src\audio_synth.v" type="verilog"/>
+    </FileList>
+    <OptionList>
+        <Option type="disable_insert_pad" value="0"/>
+        <Option type="dsp_style" value="auto"/>
+        <Option type="global_freq" value="100.000"/>
+        <Option type="looplimit" value="2000"/>
+        <Option type="map_option" value="1"/>
+        <Option type="max_fanout" value="1000"/>
+        <Option type="netlist_hierarchy" value="1"/>
+        <Option type="opt_goal" value="auto"/>
+        <Option type="output_file" value="C:\6nov26\impl\gwsynthesis\MiniGPU_BASIC.vg"/>
+        <Option type="print_all_synthesis_warning" value="0"/>
+        <Option type="ram_rw_check" value="0"/>
+        <Option type="ram_style" value="auto"/>
+        <Option type="rom_style" value="auto"/>
+        <Option type="shift_reg" value="auto"/>
+        <Option type="top_module" value="top"/>
+        <Option type="vcc" value="1.0"/>
+        <Option type="verilog_language" value="sysv-2017"/>
+        <Option type="vhdl_language" value="vhdl-1993"/>
+    </OptionList>
+</Project>

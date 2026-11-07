@@ -1,0 +1,38 @@
+<html>
+<head><title>Tang Nano 20K - 6502 Webserver</title></head>
+<body bgcolor="#001830" text="#e0f8ff" link="#ffff40" vlink="#40ff80">
+<pre>
+====================================================================
+   <b>TANG NANO 20K - MINIGPU 6502 WEBSERVER (W5500 OP POORT 80)</b>
+====================================================================
+
+Welkom op de eigen webserver van jouw <b>6502 Retro Computer</b>!
+Deze pagina (<b>INDEX</b>) wordt live vanaf de MicroSD-kaart geserveerd.
+
+<b>SNELLE NAVIGATIE &amp; BESTANDEN:</b>
+  * <a href="/D0">[SD-Kaart D0 Catalogus]</a>   - Bekijk &amp; download D0 bestanden
+  * <a href="/D1">[SD-Kaart D1 Catalogus]</a>   - Bekijk &amp; download D1 bestanden
+  * <a href="/R0">[SDRAM-Disk R0]</a>           - Supersnelle 4MB RAM-Disk 0
+  * <a href="/R1">[SDRAM-Disk R1]</a>           - Supersnelle 4MB RAM-Disk 1
+  * <a href="/D0/LEESMIJ">[Lees het LEESMIJ Boek]</a>   - Bekijk tekst direct in je browser!
+
+--------------------------------------------------------------------
+<b>ZELF EEN WEBPAGINA MAKEN IN BASIC OF VIA FTP:</b>
+
+1. <b>Rechtstreeks in MiniGPU-BASIC (op de SD-kaart of RAM-Disk):</b>
+   OPEN "INDEX", 1
+   WRITE "&lt;html&gt;&lt;body bgcolor=#002 text=#0ff&gt;"
+   WRITE "&lt;h1&gt;Hallo vanaf mijn 6502!&lt;/h1&gt;"
+   WRITE "&lt;p&gt;Welkom op mijn eigen retro website!&lt;/p&gt;"
+   WRITE "&lt;a href=/D0&gt;Bekijk mijn SD-kaart&lt;/a&gt;"
+   WRITE "&lt;/body&gt;&lt;/html&gt;"
+   CLOSE
+
+2. <b>Of vanaf je PC via FTP (poort 21 of 80):</b>
+   Upload een eigen <b>INDEX.HTM</b> (of bijv. <b>INFO.HTM</b> / <b>BLOG.TXT</b>)
+   naar <b>ftp://192.168.178.201/D0/</b> en open direct:
+   <b>http://192.168.178.201/</b>
+====================================================================
+</pre>
+</body>
+</html>

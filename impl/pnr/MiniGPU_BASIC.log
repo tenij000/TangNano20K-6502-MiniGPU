@@ -1,0 +1,32 @@
+Reading netlist file: "C:\6nov26\impl\gwsynthesis\MiniGPU_BASIC.vg"
+Parsing netlist file "C:\6nov26\impl\gwsynthesis\MiniGPU_BASIC.vg" completed
+WARN  (PA1003) : Invalid parameterized value 'GW2AR-18'(DEVICE) specified for instance 'pll_hdmi/rpll_inst'
+Processing netlist completed
+Reading constraint file: "C:\6nov26\src\nano20k.cst"
+Physical Constraint parsed completed
+Running placement......
+[10%] Placement Phase 0 completed
+[20%] Placement Phase 1 completed
+[30%] Placement Phase 2 completed
+WARN  (TA1132) :  'div5/CLKOUT.default_gen_clk' was determined to be a clock but was not created.
+[50%] Placement Phase 3 completed
+Running routing......
+[60%] Routing Phase 0 completed
+[70%] Routing Phase 1 completed
+[80%] Routing Phase 2 completed
+WARN  (PR1014) : Generic routing resource will be used to clock signal 'sys_clk_d' by the specified constraint. And then it may lead to the excessive delay or skew
+[90%] Routing Phase 3 completed
+Running timing analysis......
+[95%] Timing analysis completed
+Placement and routing completed
+Bitstream generation in progress......
+Bitstream generation completed
+Running power analysis......
+[100%] Power analysis completed
+Generate file "C:\6nov26\impl\pnr\MiniGPU_BASIC.power.html" completed
+Generate file "C:\6nov26\impl\pnr\MiniGPU_BASIC.pin.html" completed
+Generate file "C:\6nov26\impl\pnr\MiniGPU_BASIC.rpt.html" completed
+Generate file "C:\6nov26\impl\pnr\MiniGPU_BASIC.rpt.txt" completed
+Generate file "C:\6nov26\impl\pnr\MiniGPU_BASIC.tr.html" completed
+Sat Nov  7 12:26:18 2026
+

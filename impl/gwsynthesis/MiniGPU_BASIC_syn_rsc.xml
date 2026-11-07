@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Module name="top" Register="757" Alu="134" Lut="1349" MULTALU36X18="1" Bsram="10" T_Register="4660(757)" T_Alu="2842(134)" T_Lut="12878(1349)" T_PADD18="1(0)" T_MULT9X9="16(0)" T_MULT18X18="2(0)" T_MULTALU36X18="1(1)" T_MULTADDALU18X18="6(0)" T_Bsram="46(10)" T_Ssram="40(0)">
+ <SubModule name="pll_hdmi"/>
+ <SubModule name="uart_inst" Register="33" Lut="65" T_Register="33(33)" T_Lut="65(65)"/>
+ <SubModule name="uart_tx_inst" Register="66" Alu="34" Lut="64" Bsram="2" T_Register="66(66)" T_Alu="34(34)" T_Lut="64(64)" T_Bsram="2(2)"/>
+ <SubModule name="ps2_inst" Register="131" Lut="272" T_Register="131(131)" T_Lut="272(272)"/>
+ <SubModule name="sd_spi_inst" Register="37" Lut="40" T_Register="37(37)" T_Lut="40(40)"/>
+ <SubModule name="w5500_spi_inst" Register="37" Lut="41" T_Register="37(37)" T_Lut="41(41)"/>
+ <SubModule name="ext_rom_inst" Lut="2112" T_Lut="2112(2112)"/>
+ <SubModule name="cpu_inst" Register="121" Alu="6" Lut="744" T_Register="133(121)" T_Alu="15(6)" T_Lut="843(744)">
+  <SubModule name="ALU" Register="12" Alu="9" Lut="99" T_Register="12(12)" T_Alu="9(9)" T_Lut="99(99)"/>
+ </SubModule>
+ <SubModule name="fb_inst" Register="341" Alu="69" Lut="423" Bsram="1" T_Register="2023(341)" T_Alu="1754(69)" T_Lut="4752(423)" T_PADD18="1(0)" T_MULT9X9="14(0)" T_MULTADDALU18X18="6(0)" T_Bsram="32(1)">
+  <SubModule name="gpu_inst" Register="818" Alu="770" Lut="1718" Bsram="5" T_Register="818(818)" T_Alu="770(770)" T_Lut="1718(1718)" T_Bsram="5(5)"/>
+  <SubModule name="bg_inst" Register="8" Alu="20" Bsram="10" T_Register="8(8)" T_Alu="20(20)" T_Bsram="10(10)"/>
+  <SubModule name="space_bg_inst" Register="236" Alu="412" Lut="785" MULT9X9="6" MULTADDALU18X18="3" T_Register="236(236)" T_Alu="412(412)" T_Lut="785(785)" T_MULT9X9="6(6)" T_MULTADDALU18X18="3(3)"/>
+  <SubModule name="farm_bg_inst" Register="461" Alu="405" Lut="1706" PADD18="1" MULT9X9="8" MULTADDALU18X18="3" T_Register="461(461)" T_Alu="405(405)" T_Lut="1706(1706)" T_PADD18="1(1)" T_MULT9X9="8(8)" T_MULTADDALU18X18="3(3)"/>
+  <SubModule name="big_spr_inst" Register="79" Alu="64" Lut="49" Bsram="16" T_Register="79(79)" T_Alu="64(64)" T_Lut="49(49)" T_Bsram="16(16)"/>
+  <SubModule name="sdram_inst" Register="80" Alu="14" Lut="71" T_Register="80(80)" T_Alu="14(14)" T_Lut="71(71)"/>
+ </SubModule>
+ <SubModule name="term_inst" Register="93" Alu="65" Lut="647" Bsram="2" T_Register="93(93)" T_Alu="65(65)" T_Lut="647(647)" T_Bsram="2(2)"/>
+ <SubModule name="synth_inst" Register="724" Alu="777" Lut="1722" MULT9X9="2" MULT18X18="2" Ssram="40" T_Register="724(724)" T_Alu="777(777)" T_Lut="1722(1722)" T_MULT9X9="2(2)" T_MULT18X18="2(2)" T_Ssram="40(40)"/>
+ <SubModule name="hdmi_inst" Register="55" Lut="67" T_Register="626(55)" T_Alu="63(0)" T_Lut="971(67)">
+  <SubModule name="true_hdmi_output.packet_picker" Register="440" Lut="328" T_Register="484(440)" T_Alu="21(0)" T_Lut="336(328)">
+   <SubModule name="audio_clock_regeneration_packet" Register="44" Alu="21" Lut="8" T_Register="44(44)" T_Alu="21(21)" T_Lut="8(8)"/>
+  </SubModule>
+  <SubModule name="true_hdmi_output.packet_assembler" Register="45" Alu="4" Lut="338" T_Register="45(45)" T_Alu="4(4)" T_Lut="338(338)"/>
+  <SubModule name="tmds_gen[0].tmds_channel" Register="14" Alu="11" Lut="72" T_Register="14(14)" T_Alu="11(11)" T_Lut="72(72)"/>
+  <SubModule name="tmds_gen[1].tmds_channel" Register="14" Alu="15" Lut="93" T_Register="14(14)" T_Alu="15(15)" T_Lut="93(93)"/>
+  <SubModule name="tmds_gen[2].tmds_channel" Register="14" Alu="12" Lut="65" T_Register="14(14)" T_Alu="12(12)" T_Lut="65(65)"/>
+  <SubModule name="serializer"/>
+ </SubModule>
+</Module>

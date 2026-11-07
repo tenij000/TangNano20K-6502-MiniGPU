@@ -1,0 +1,23 @@
+===================================================================
+  TANG NANO 20K - MINIGPU-BASIC 1.2 BITSTREAM RELEASE
+===================================================================
+
+Inhoud van deze map:
+  - MiniGPU_BASIC.fs    : Gowin FPGA bitstream voor de Tang Nano 20K (GW2AR-18C)
+  - MiniGPU_BASIC.bin   : Binaire bitstream
+  - flash_permanent.bat : Dubbelklik om permanent in SPI Flash te programmeren
+  - flash_sram.bat      : Dubbelklik om direct in tijdelijk SRAM te laden
+
+Nieuw in deze build:
+  - 720p @ 60 FPS Hardware Boerderij-Landschap (farm_landscape_bg.v) met
+    volledig gepipelinede wolken, vogels, beek, molenwieken en tractor
+    (100% vrij van verticale streepjes rond/in de wolken).
+  - 720p @ 60 FPS Hardware Space Planeten-Landschap (space_planets_bg.v).
+  - 6502 CPU + MiniGPU-BASIC 1.2 + SDRAM Framebuffer + Sprites/Tiles +
+    MicroSD (D0..D3) & SDRAM-Disk (R0..R3) + W5500 Ethernet SPI.
+
+Flashen:
+  1. Sluit de Tang Nano 20K via USB aan op de PC.
+  2. Dubbelklik op 'flash_permanent.bat' (of gebruik Gowin Programmer /
+     openFPGALoader -b tangnano20k -f MiniGPU_BASIC.fs).
+===================================================================

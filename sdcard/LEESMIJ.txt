@@ -1,0 +1,55 @@
+# WELKOM BIJ MINIGPU-BASIC & TEXTREADER 6502
+============================================================
+Systeem  : Tang Nano 20K FPGA (MOS 6502 CPU + MiniGPU 640x360)
+Programma: READER.asm (Geassembleerd op $8000 in SDRAM)
+Bestand  : LEESMIJ.TXT (Standaard ASCII tekstbestand op $6000)
+
+# 1. WAT IS TEXTREADER 6502?
+* TextReader 6502 is een grafische tekst-, BASIC- en hex-lezer
+  volledig geschreven in 6502 machinetaal voor de MiniGPU.
+* Het programma ondersteunt automatische woordafbreking op 64
+  kolommen, regelnummers, een schuifbalk en 4 kleurthema's.
+
+# 2. WELKE BESTANDEN KAN TEXTREADER OPENEN?
+- .TXT bestanden : Platte ASCII tekstbestanden (op adres $6000)
+- .BAS bestanden : MiniGPU-BASIC programma's (worden automatisch
+                   gedetokeniseerd naar leesbare BASIC-regels!)
+- WRITER.DOC     : Tekstdocumenten uit LibreWriter 6502 (toets L)
+- .ASM / .BIN    : 6502 machinetaal-programma's in de ingebouwde
+                   16-byte Hex + ASCII Dump Modus (toets H)
+
+# 3. OVERZICHT VAN ALLE SNELTOETSEN
+* O of ENTER     : Open de grafische SD-Kaart Bestands-Kiezer
+* W / S of Pijl  : Scroll 1 regel omhoog of omlaag
+* A / D of Spatie: Pagina omhoog (PageUp) / omlaag (PageDown)
+* T / E          : Spring naar Begin (Top) of Einde (End)
+* H              : Wissel tussen Tekst-weergave en Hex-Dump
+* R              : Zet Regelnummers (001..240) aan of uit
+* C              : Wissel Kleurthema (Papier, Dark, Amber, Matrix)
+* L              : Laad direct het LibreWriter 6502 document
+* I              : Toon de ingebouwde Nederlandstalige handleiding
+* ESC            : Open menubalk / Terug naar BASIC of MC
+
+# 4. EIGEN .TXT BESTANDEN OP DE SD-KAART ZETTEN
+- Plaats elk gewenst .txt bestand in de map sdcard/ op je PC.
+- Gebruik sd_copy.py of het [D] SD-Kaart menu in basic_terminal.py
+  om het tekstbestand naar de Tang Nano 20K te kopieren.
+- Of vanuit BASIC: BSAVE "MIJNTEKST", $6000, lengte
+
+# 5. ALLE SD-KAART APPS & GAMES (START MET BRUN <NAAM>)
+- BRUN MC       : Midnight Commander 2.2 Dual-Pane ($9000)
+- BRUN READER   : TextReader 6502 (.TXT, .BAS, DOC & Hex-Dump)
+- BRUN VIEWER   : ImageViewer 6502 (Plaatjes, Sprites, Map & Palet)
+- BRUN EXCEL    : 26x30 SDRAM Spreadsheet (gekoppeld aan A(r)..Z(r))
+- BRUN MON6502  : 6502 Machine Monitor, Disassembler & Line-Assembler
+- BRUN FRUITY   : FruityLoops 6502 (4-Ch Chiptune Sequencer & Synth)
+- BRUN WRITER   : LibreWriter 6502 WYSIWYG Tekstverwerker
+- BRUN CALC     : LibreCalc 6502 Spreadsheet + Live Staafgrafiek
+- BRUN IMPRESS  : LibreImpress Presentaties & Vector Tekenstudio
+- BRUN SPREDIT  : PixelStudio 6502 16x16 Sprite-Editor (SPRITE 24-31)
+- BRUN BROWSER  : WebNavigator 1.0 HTTP/1.0 Powerbaas Dashboard
+- BRUN NETTERM  : W5500 TCP Telnet Server (poort 23) & Retro BBS
+- BRUN RFTS     : Reach for the Stars (1983) 4X Space Strategy Game
+- BRUN PACMAN65 : 60 FPS Arcade Pac-Man in 6502 Machinecode
+============================================================
+Veel lees- en programmeerplezier op de Tang Nano 20K!
