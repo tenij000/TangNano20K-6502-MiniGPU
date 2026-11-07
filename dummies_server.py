@@ -445,6 +445,28 @@ class SerialBridge:
         _, chunk = self.get_rx_since(start_seq)
         return (needle in chunk), chunk
 
+    def _wait_for_prompt(self, start_seq, timeout_s=2.0):
+        deadline = time.time() + timeout_s
+        while time.time() < deadline:
+            _, chunk = self.get_rx_since(start_seq)
+            if "\n>" in chunk or "\r>" in chunk or chunk.startswith(">"):
+                return True, chunk
+            time.sleep(0.006)
+        _, chunk = self.get_rx_since(start_seq)
+        return ("\n>" in chunk or "\r>" in chunk or ">" in chunk), chunk
+
+    @staticmethod
+    def _sanitize_basic_ascii(text):
+        import unicodedata
+        repl = {
+            "\u2013": "-", "\u2014": "-", "\u2018": "'", "\u2019": "'",
+            "\u201c": '"', "\u201d": '"', "\u00d7": "x", "\u2192": "->",
+        }
+        for k, v in repl.items():
+            text = text.replace(k, v)
+        norm = unicodedata.normalize("NFKD", text)
+        return "".join(ch for ch in norm if 32 <= ord(ch) < 127 or ch in "\r\n\t")
+
     def run_basic_code(self, code, port="", baud=115200):
         with self.run_lock:
             if not self.is_connected():
@@ -456,7 +478,8 @@ class SerialBridge:
                     return res
                 time.sleep(0.08)
 
-            raw_lines = [ln.rstrip() for ln in (code or "").splitlines() if ln.strip()]
+            clean_code = self._sanitize_basic_ascii(code or "")
+            raw_lines = [ln.rstrip() for ln in clean_code.splitlines() if ln.strip()]
             if not raw_lines:
                 return {"ok": False, "error": "Geen BASIC-regels om te verzenden."}
 
@@ -465,20 +488,20 @@ class SerialBridge:
             res = self.send_raw("\r")
             if not res.get("ok"):
                 return res
-            got_prompt, _ = self._wait_for_text(seq0, ">", timeout_s=0.18)
+            got_prompt, _ = self._wait_for_prompt(seq0, timeout_s=0.18)
             if not got_prompt:
                 # A program, INPUT, or 6502 binary (like FTP/MC) is running -> send ESC (and 'q' fallback)
                 seq1, _ = self.get_rx_since(self.rx_seq)
                 self.send_raw("\x1b")
-                got_prompt, _ = self._wait_for_text(seq1, ">", timeout_s=0.35)
+                got_prompt, _ = self._wait_for_prompt(seq1, timeout_s=0.35)
                 if not got_prompt:
                     seq_q, _ = self.get_rx_since(self.rx_seq)
                     self.send_raw("q\x1b\r")
-                    got_prompt, _ = self._wait_for_text(seq_q, ">", timeout_s=0.35)
+                    got_prompt, _ = self._wait_for_prompt(seq_q, timeout_s=0.35)
                 if not got_prompt:
                     seq2, _ = self.get_rx_since(self.rx_seq)
                     self.send_raw("\r")
-                    self._wait_for_text(seq2, ">", timeout_s=0.20)
+                    self._wait_for_prompt(seq2, timeout_s=0.20)
 
             # Step 2: Upload & execute line by line
             error_lines = []
@@ -504,9 +527,9 @@ class SerialBridge:
                     if "?Syntax" in resp or "?Undefined" in resp:
                         error_lines.append({"line": stripped, "resp": resp.strip()})
                 else:
-                    # Wait for BASIC '> ' prompt before sending the next line
-                    # Numbered lines take ~5ms; direct commands like BEEP take up to ~1s
-                    _, resp = self._wait_for_text(seq_before, ">", timeout_s=2.0)
+                    # Wait for BASIC '\n> ' prompt before sending the next line
+                    # so '>' inside expressions (e.g. IF K >= 49) never triggers early!
+                    _, resp = self._wait_for_prompt(seq_before, timeout_s=2.5)
                     if "?Syntax" in resp or "?Undefined" in resp:
                         error_lines.append({"line": stripped, "resp": resp.strip()})
 
