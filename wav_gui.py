@@ -1494,14 +1494,19 @@ class WavStudioGUI:
                     for cmd in [
                         "DRIVE 0",
                         'DELETE "WAVPLAY"',
-                        f'BSAVE "WAVPLAY",${mp3_org:04X},${len(mp3_code):04X}',
+                        'DELETE "MP3PLAY"',
+                        f'BSAVE "MP3PLAY",${mp3_org:04X},${len(mp3_code):04X}',
                         "DRIVE 1",
+                        'DELETE "WAVPLAY"',
                         'DELETE "MP3PLAY"',
                         f'BSAVE "MP3PLAY",${mp3_org:04X},${len(mp3_code):04X}',
                         "DRIVE 2",
                         'DELETE "MP3PLAY"',
                         f'BSAVE "MP3PLAY",${mp3_org:04X},${len(mp3_code):04X}',
+                        'DELETE "WAVPLAY"',
+                        f'BSAVE "WAVPLAY",${mp3_org:04X},${len(mp3_code):04X}',
                         "DRIVE 0",
+                        "CLS",
                     ]:
                         wav_up.send_basic_line(ser, cmd, wait=1.6 if "BSAVE" in cmd else 0.4)
                     self.progress_var.set(100.0)
@@ -1716,6 +1721,7 @@ class WavStudioGUI:
                 if b">" in tail:
                     break
             time.sleep(0.01)
+        wav_up.send_basic_line(ser, "CLS", wait=0.2)
 
     def upload_selected_wav_async(self):
         if self.busy:
