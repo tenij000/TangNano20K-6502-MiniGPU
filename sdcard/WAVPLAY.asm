@@ -62,6 +62,7 @@ MP3_DIR_BUF     = $7800         ; 512B SD-kaart MP3 Directory buffer (Sector $20
 WAV_DIR_BUF     = $7A00         ; 512B SD-kaart WAV Directory buffer (Sector $2000)
 SEC_TMP_BUF     = $0600         ; 512B Sector laad-buffer in snelle interne BSRAM ($0600-$07FF)
 BSRAM_COPY_SEC  = $02C0         ; Snelle BSRAM 512B sector -> SDRAM kopieer-routine
+BSRAM_RD_SAMPLE = $02F5         ; Snelle BSRAM audio-sample lezer ($A012 -> $A014)
 
 ; Zero-Page variabelen ($40..$6A)
 ZP_X_LO         = $40
@@ -110,7 +111,7 @@ REM_BG_BANKS    = $6A
 
 START:
         CLD
-        LDX #56
+        LDX #60
 INIT_BSRAM_LP:
         LDA BSRAM_SRC,X
         STA BSRAM_COPY_SEC,X
@@ -1109,8 +1110,7 @@ ULV_EQ_LP:
         ASL A
         ASL A
         EOR EQ_PHASE
-        STA IO_RD_LO
-        LDA IO_RD_DATA
+        JSR BSRAM_RD_SAMPLE
         SEC
         SBC #128
         BPL ULV_ABS_OK
@@ -1148,10 +1148,13 @@ ULV_H_OK:
         STA ZP_COL
         JSR GPU_RECT
 
-        LDA #278
+        LDA #<278
         SEC
         SBC SAMPLE_PEAK
         STA ZP_Y_LO
+        LDA #>278
+        SBC #0
+        STA ZP_Y_HI
         LDA SAMPLE_PEAK
         STA ZP_H_LO
         LDX TEMP_IDX
@@ -1675,8 +1678,9 @@ DRB_RECT:
         CLC
         ADC #6
         STA ZP_X_LO
-        LDA #261
+        LDA #<261
         STA ZP_Y_LO
+        INC ZP_Y_HI
         LDA RATE_LBL_LO,X
         LDY RATE_LBL_HI,X
         STA ZP_PTR_LO
@@ -1708,8 +1712,9 @@ DRB_FM_GO:
 
         LDA #250
         STA ZP_X_LO
-        LDA #261
+        LDA #<261
         STA ZP_Y_LO
+        INC ZP_Y_HI
         LDA #$FF
         STA ZP_COL
         LDA #<STR_BTN_FM
@@ -1935,6 +1940,10 @@ BCS_P1:
         LDA CUR_LOAD_BANK
         STA IO_RD_BANK
 BCS_DONE:
+        RTS
+BSRAM_RD_SMP_SRC:
+        STA IO_RD_LO
+        LDA IO_RD_DATA
         RTS
 
 ; ============================================================================
