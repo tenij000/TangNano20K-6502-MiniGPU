@@ -1,5 +1,6 @@
 ===================================================================
-  TANG NANO 20K - MINIGPU-BASIC 1.2 BITSTREAM RELEASE
+  TANG NANO 20K - MINIGPU-BASIC 1.2 / 1.3 BITSTREAM RELEASE
+  (Inclusief Hardware Audio Hulp-CPU $A018-$A01B voor .MP3 & .WAV!)
 ===================================================================
 
 Inhoud van deze map:
@@ -8,13 +9,27 @@ Inhoud van deze map:
   - flash_permanent.bat : Dubbelklik om permanent in SPI Flash te programmeren
   - flash_sram.bat      : Dubbelklik om direct in tijdelijk SRAM te laden
 
-Nieuw in deze build:
-  - 720p @ 60 FPS Hardware Boerderij-Landschap (farm_landscape_bg.v) met
-    volledig gepipelinede wolken, vogels, beek, molenwieken en tractor
-    (100% vrij van verticale streepjes rond/in de wolken).
-  - 720p @ 60 FPS Hardware Space Planeten-Landschap (space_planets_bg.v).
-  - 6502 CPU + MiniGPU-BASIC 1.2 + SDRAM Framebuffer + Sprites/Tiles +
-    MicroSD (D0..D3) & SDRAM-Disk (R0..R3) + W5500 Ethernet SPI.
+Nieuw in deze Bitstream Release:
+  1. Hardware Audio Hulp-CPU / SDRAM Audio-DMA ($A018-$A01B):
+     - Speelt 8-bit PCM .MP3- en .WAV-stromen (32 KB tot 2 MB, 1..32 SDRAM-banken)
+       100% zelfstandig in hardware af vanuit SDRAM, met 0% 6502 CPU-belasting!
+     - Prioritaire SDRAM-arbiter en ontkoppeling van cpu_gpu_busy zodat zware
+       GPU-opdrachten (RECT, GTEXT, SPRITE) het .MP3/.WAV-geluid nooit laten
+       stotteren en het HDMI-scherm nooit zwart wordt.
+  2. Kristalzuivere 48 kHz HDMI Audio Klok (CTS = 74.250, 0.000 ppm drift):
+     - Exacte fractionele 1546.875 clk_pixel deler (12375 / 8) + 3-polig 48 kHz
+       IIR reconstructiefilter en 192x 16-bit HDMI PCM-versterking.
+  3. Ingebouwd BASIC 'WAV' Commando & MP3Commander 2.0 (BRUN "MP3PLAY"):
+     - Typ 'WAV' in BASIC voor de lijst van 16 .WAV-slots op de MicroSD-kaart,
+       'WAV 1..16' om direct af te spelen op de Audio Hulp-CPU, of 'WAV 0' om
+       te stoppen.
+     - Start 'BRUN "MP3PLAY"' (of 'BRUN "WAVPLAY"') voor de Midnight-Commander
+       Dual-Pane .MP3 & .WAV Speler met 8 .MP3-liedjes (links), 16 .WAV-tracks
+       (rechts), 16-Band Live Spectrum Equalizer, Album Auto-DJ en Background Play!
+  4. 12x16 Hardware Sprite Muispijl ($A00C-$A00F) + 720p Boerderij & Space:
+     - Bestuurbaar met Alt + Pijltjes of Raspberry Pi Pico 2 USB-Muis.
+     - 720p @ 60 FPS Hardware Boerderij-Landschap (farm_landscape_bg.v) &
+       Space Planeten-Landschap (space_planets_bg.v) + 720p Hardware Klok HUD.
 
 Flashen:
   1. Sluit de Tang Nano 20K via USB aan op de PC.
