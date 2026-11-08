@@ -111,14 +111,25 @@ Bij het opstarten zitten deze 16×16 sprites direct klaar in het FPGA-geheugen:
 
 ### 6. Digitale `.WAV` & `.MP3` Audio en Autonome Hardware Audio Hulp-CPU (`$A018..$A01B`)
 - **`WAV`**: Toont de ingebouwde MicroSD WAV-catalogus (`#1..#16`, sector `$2000–$240F`).
-- **`WAV 1..16 [, rate [, mode]]`**: Laadt track `1..16` (32 KB) vanaf de MicroSD-kaart naar **SDRAM Bank 61** en speelt deze met **0% CPU-belasting** op de achtergrond af via de **Hardware Audio Hulp-CPU**:
+- **`WAV 1..16 [, rate [, mode]]`**: Laadt `.WAV`-track `1..16` (32 KB) vanaf de MicroSD-kaart naar **SDRAM Bank 62** en speelt deze met **0% CPU-belasting** op de achtergrond af via de **Hardware Audio Hulp-CPU**:
   - `rate`: `1`=8000 Hz, `2`=11025 Hz, `3`=16000 Hz, `4`=22050 Hz, `5`=12000 Hz, `6`=24000 Hz, `7`=32000 Hz.
-  - `mode`: `0` (standaard) = eindeloze achtergrond-loop, `1` = eenmalig afspelen (one-shot).
+  - `mode`: `0` (standaard) = 1× op de achtergrond, `1` = oneindige hardware-loop (`+128`), `2` = wacht tot klaar.
 - **`WAV 0`**: Stopt het afspelen van `.WAV` / `.MP3` audio direct.
+- **`MP3`** *(nieuw!)*: Toont de MicroSD `.MP3`-catalogus (`#1..#8`, sector `$2001` / `$3000..$AFFF`):
+  1. `1.OUTFOXING.MP3` (*Outfoxing the Fox*, 5 banken = `320 KB` = **41 sec**)
+  2. `2.CALIF DREM.MP` (*California Dreamin'*, 16 banken = `1.024 KB` = **2 min 11 sec**)
+  3. `3.MONDAY MON.MP` (*Monday, Monday*, 10 banken = `640 KB` = **1 min 22 sec**)
+  4. `4.DEDICATED.MP3` (*Dedicated To The One I Love*, 10 banken = `640 KB` = **1 min 22 sec**)
+  5. `5.DANCING ST.MP` (*Do You Wanna Dance*, 10 banken = `640 KB` = **1 min 22 sec**)
+  6. `6.SPAN HARLM.MP` (*Spanish Harlem*, 10 banken = `640 KB` = **1 min 22 sec**)
+  7. `7.TWIST SHT.MP3` (*Twist And Shout*, 10 banken = `640 KB` = **1 min 22 sec**)
+  8. `8.CALL NAME.MP3` (*I Call Your Name*, 10 banken = `640 KB` = **1 min 22 sec**)
+- **`MP3 1..8 [, rate [, mode]]`** *(nieuw!)*: Laadt het complete `.MP3`-nummer `#1..#8` (`320 KB..1.024 KB`) vanaf de MicroSD-kaart in **SDRAM Bank `17..32`** (met slimme SDRAM-caching op `$049E..$049F` zodat herhaalde aanroepen in **0,00 s** starten!) en speelt het op de achtergrond af op de **Hardware Audio Hulp-CPU (`$A018..$A01B`)**. Werkt zowel direct via de residente 6502 MP3-driver op MicroSD Sector `$2002` (`$2C00`) als native in de BASIC ROM (`STMT_MP3`).
+- **`MP3 0`** *(nieuw!)*: Stopt de Hardware Audio Hulp-CPU direct.
 - **Rechtstreekse aansturing van de Audio Hulp-CPU (`$A018..$A01B`)**:
-  - `$A018`: Start SDRAM-bank (`0..61`, bijv. `60` voor een 128 KB / 16,4-seconden `.MP3`-stream over Bank `60..61`).
-  - `$A019` / `$A01A`: Aantal pagina's van 256 bytes (`Lo` / `Hi`, bijv. `$0200` = 512 pagina's = 128 KB).
-  - `$A01B`: Start/Stop & Snelheid (`0` = Stop, `1..7` = One-shot op rate `1..7`, `129..135` (`+128`) = Auto-Loop op rate `1..7`). Lezen met `PEEK($A01B)` geeft `1` zolang de Hulp-CPU speelt.
+  - `$A018`: Start SDRAM-bank (`0..62`, bijv. `17..32` voor een 1.024 KB / 2m11s `.MP3`-stream over 16 SDRAM-banken).
+  - `$A019` / `$A01A`: Aantal pagina's van 256 bytes (`Lo` / `Hi`, bijv. `$1000` = 4.096 pagina's = 1.024 KB).
+  - `$A01B`: Start/Stop & Snelheid (`0` = Stop, `1..7` = One-shot op rate `1..7`, `129..135` (`+128`) = Auto-Loop op rate `1..7`). Lezen met `PEEK($A01B)` geeft bit 7 (`>= 128`) zolang de Hulp-CPU speelt.
 - **MP3Commander 2.1 (`BRUN "MP3PLAY"` / `sdcard/MP3PLAY.asm`)**:
   - Volledige Midnight-Commander Dual-Pane `.MP3`- & `.WAV`-speler in 6502 machinecode op `$8000` met 16-Band Live Spectrum Equalizer, muis-, joypad- en toetsenbordbesturing:
     - **Linker Paneel (`.MP3` op MicroSD Sector `$2001` / `$3000..$AFFF`)**: 8 lange/complete `.MP3`-liedjes (tot `30` SDRAM-banken = `1.920 KB` = **4m06s** per nummer!) met automatische background-streaming vanaf de MicroSD-kaart naar SDRAM terwijl de Hardware Audio Hulp-CPU speelt.
