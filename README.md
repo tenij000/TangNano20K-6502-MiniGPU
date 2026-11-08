@@ -106,7 +106,17 @@ Bij het opstarten zitten deze 16×16 sprites direct klaar in het FPGA-geheugen:
 - **`BRUN "NAAM" [, addr]`**: Laadt én start een 6502 machinecode-programma direct vanaf de SD-kaart (bijv. `BRUN STER6502`, `BRUN ASM6502` of `BRUN MC`).
 - **`DEMO 5`**: Laadt én toont een ingebouwde 6502 machinecode- en BASIC-demo op `$8000`.
 - **Midnight Commander (`BRUN MC`)**: Volledige dual-pane Norton/Midnight Commander bestandsbeheerder en programmastarter in 6502 machinecode op `$9000` (`sdcard/MC.asm`). Besturing met `W`/`S` (cursor), `Enter`/`Spatie` (start BASIC of 6502 ASM programma), `D`/`2` (wissel drive `D0..D3`), `T`/`9` (transparante glas-modus aan/uit), `Q`/`ESC` (terug naar BASIC).
-- **Bestanden kopiëren naar SD-kaart (`sd_copy.py` / `F5` in `basic_terminal.py`)**: Kopieert `.bas`, `.asm` (met ingebouwde 2-pass 6502 assembler!) en `.bin` bestanden uit de map `sdcard/` rechtstreeks naar de SD-kaart in de Tang Nano 20K.
+- **Bestanden kopiëren naar SD-kaart (`sd_copy.py` / `sd_gui.py` / `F5` in `basic_terminal.py`)**: Kopieert `.bas`, `.asm` (met ingebouwde 2-pass 6502 assembler!) en `.bin` bestanden uit de map `sdcard/` rechtstreeks naar de SD-kaart in de Tang Nano 20K.
+- **Complete Windows SD-Kaart Installer (`sd_kaart_installer.py` / `sd_kaart_installer.bat`)** *(nieuw!)*:
+  - Richt een **schone/lege MicroSD-kaart** in Windows in één klik compleet in met:
+    1. **Alle 60 programma-slots op `DRIVE 0`, `DRIVE 1`, `DRIVE 2` en `DRIVE 3`** (`MC`, `MP3PLAY`, `WAVPLAY`, `WEKKER`, `LORA`, `PACMAN65`, `UFO`, `PONG`, `DUNGEON`, `FRUITY`, `EXCEL`, `CALC`, `WRITER`, `READER`, `IMPRESS`, `BROWSER`, `WEB`, `BBS`, `GOPHER`, `FTP`, `MON6502`, `SPREDIT`, en alle MIMG-plaatjes).
+    2. **De Systeem- & Audio-catalogi (`Sector $2000–$2002`)** inclusief de residente 6502 `.MP3` BASIC-driver (`MP3 1..8`).
+    3. **Alle 16 `.WAV` geluidseffecten & wekkergeluiden (`Sector $2010–$240F`, 512 KB)**.
+    4. **Alle 8 volledige `.MP3` muzieknummers (`Sector $3000–$D1FF`, 5,4 MB)**.
+  - Ondersteunt **3 methodes**:
+    - **Direct via USB (`COM6`) naar de Tang Nano 20K** met de supersnelle `$7E00` 6502 Sector-Streamer (~30 seconden voor alle 60 programma's!).
+    - **Compleet `.IMG` bestand genereren (`MiniGPU_SDCard_Compleet.img`)** in 3 seconden voor Win32DiskImager / BalenaEtcher / Rufus.
+    - **Direct schrijven naar een Windows USB/SD-kaartlezer (`PhysicalDriveX`)** in 5 seconden!
 - **Hardware Achtergrond-Lader (`bg_loader.py` / `F6` in `basic_terminal.py`)**: Uploadt 1024×1024 hardware-scrollende achtergronden (`space`, `cyber`, `castle`, `island`, `farm` of een eigen `.png`/`.jpg` foto) naar de 64 hardware-tiles en 64×64 tilemap van de MiniGPU.
 
 ### 6. Digitale `.WAV` & `.MP3` Audio en Autonome Hardware Audio Hulp-CPU (`$A018..$A01B`)

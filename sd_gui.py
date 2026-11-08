@@ -158,6 +158,20 @@ class SDUploaderGUI:
             btn.pack(side=tk.LEFT, padx=3)
             self.drive_btns.append(btn)
 
+        tk.Button(
+            top_bar,
+            text="💿 Lege SD-Kaart Installer",
+            command=lambda: __import__("subprocess").Popen(
+                [sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "sd_kaart_installer.py")]
+            ),
+            font=("Segoe UI", 9, "bold"),
+            bg="#16a34a",
+            fg="#ffffff",
+            relief=tk.FLAT,
+            padx=10,
+            pady=3,
+        ).pack(side=tk.RIGHT, padx=4)
+
         # === 3. Hoofdpaneel (Links = PC, Midden = Upload-acties, Rechts = SD-Kaart Catalogus) ===
         main_frame = tk.Frame(self.root, bg="#111827")
         main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=6)

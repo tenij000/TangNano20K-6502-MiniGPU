@@ -1,0 +1,31 @@
+========================================
+   6502 MINIGPU INTERNET & WEB GIDS
+========================================
+
+1. HTTP WEB & BROWSER (DRIVE 2):
+   - BRUN "BROWSER" : Grafische HTML
+     browser met muis- en toetsenbord.
+   - BRUN "WEB"     : Tekst & HTML
+     client via de ESP32 Wi-Fi brug.
+   - Open "INDEX" voor de ingebouwde
+     lokale startpagina op de SD-kaart.
+
+2. RETRO BBS & TELNET (DRIVE 2):
+   - BRUN "BBS"     : Verbind met live
+     ANSI Bulletin Board Systems!
+   - BRUN "NETTERM" : Volledige VT100
+     en PETSCII/ANSI netwerkterminal.
+   - BRUN "NETTERM2": Dual-mode terminal
+     met adresboek en sneltoetsen.
+
+3. GOPHER & FTP (DRIVE 2):
+   - BRUN "GOPHER"  : Blader door het
+     wereldwijde Gopher-netwerk.
+   - BRUN "FTP"     : Download en bekijk
+     bestanden van een FTP-server.
+
+4. 868 MHz LORA RADIO (DRIVE 3):
+   - BRUN "LORA"    : Draadloze 868 MHz
+     LoRa transceiver & OLED dashboard
+     via LilyGO T3 v1.6.1 ($A040-$A043).
+========================================

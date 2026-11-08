@@ -106,7 +106,17 @@ def eval_asm_expr(expr_str, symbols, pc=0):
 
 
 def assemble_6502_source(source_text):
-    """Assemble standard 6502 assembly text into (org_addr, bytes)."""
+    """Assemble standard 6502 assembly text (or POKE $addr,$hex listing) into (org_addr, bytes)."""
+    pokes = re.findall(r"POKE\s+\$([0-9A-Fa-f]+)\s*,\s*\$([0-9A-Fa-f]+)", source_text, re.IGNORECASE)
+    if len(pokes) >= 16:
+        addr_map = {int(a, 16): int(v, 16) & 0xFF for a, v in pokes}
+        min_a = min(addr_map.keys())
+        max_a = max(addr_map.keys())
+        out = bytearray(max_a - min_a + 1)
+        for a, v in addr_map.items():
+            out[a - min_a] = v
+        return min_a, bytes(out)
+
     org = 0x8000
     symbols = {
         "IO_STATUS": 0xA000,

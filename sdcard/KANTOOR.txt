@@ -1,0 +1,37 @@
+========================================
+   6502 MINIGPU KANTOOR-SUITE GIDS
+========================================
+
+Alle kantoor-applicaties staan klaar op
+SD-Kaart DRIVE 3 (en zijn direct vanuit
+Midnight Commander 'BRUN MC' te starten):
+
+1. WRITER (Tekstverwerker):
+   - BRUN "WRITER"
+   - Typ documenten, gebruik pijltjes,
+     en sla direct op naar de SD-kaart.
+
+2. READER (Document & Hex Viewer):
+   - BRUN "READER"
+   - Lees .TXT en .HTM bestanden met
+     pagina-scroll en Hex-inspectie (H).
+
+3. EXCEL (Spreadsheet Studio):
+   - BRUN "EXCEL"
+   - Cellen A1..F12, automatische SOM/
+     GEMIDDELDE en live staafgrafieken!
+
+4. CALC (Wetenschappelijke Calculator):
+   - BRUN "CALC"
+   - Decimaal, Hexadecimaal ($), Binair
+     en functie-plotter op 240x160 GPU.
+
+5. IMPRESS (Presentatie & Slideshow):
+   - BRUN "IMPRESS"
+   - Kleurrijke slides met overgangen
+     en automatische presentatie-modus.
+
+6. SPREDIT (Sprite & Tile Studio):
+   - BRUN "SPREDIT"
+   - Ontwerp 16x16 hardware sprites!
+========================================
