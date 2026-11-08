@@ -149,7 +149,7 @@ void updateOledDashboard() {
     display.setCursor(0, 32);
     if (g_oledCustom.length() > 0) {
         display.print("BASIC: ");
-        display.println(g_oledCustom.substring(0, 34));
+        display.println(g_oledCustom.substring(0, 14));
     } else {
         display.print("TX: ");
         display.println(g_lastTxText.substring(0, 17));
@@ -157,7 +157,7 @@ void updateOledDashboard() {
 
     display.setCursor(0, 44);
     display.print("RX: ");
-    display.println(g_lastRxText.substring(0, 34));
+    display.println(g_lastRxText.substring(0, 38));
 
     display.display();
 }
@@ -174,6 +174,7 @@ bool transmitLoRaPacket(const String &payload) {
 
     g_txCount++;
     g_lastTxText = payload;
+    g_oledCustom = "";
     updateOledDashboard();
     return true;
 }
@@ -395,11 +396,15 @@ void loop() {
             snprintf(rxLine, sizeof(rxLine), "+RX [%ddBm]: %s", g_lastRssi, incoming.c_str());
             sendLineToTang(String(rxLine));
 
-            // Automatische PONG-responder als een andere 868 MHz node "PING" stuurt
+            // Automatische PONG/ACK-responder als een andere 868 MHz node een bericht stuurt
             if (incoming.startsWith("PING")) {
-                delay(40);
+                delay(60);
                 String pong = "PONG (" + String(g_lastRssi) + "dBm)";
                 transmitLoRaPacket(pong);
+            } else if (!incoming.startsWith("PONG") && !incoming.startsWith("ACK")) {
+                delay(80);
+                String ack = "ACK (" + String(g_lastRssi) + "dBm): " + incoming.substring(0, 22);
+                transmitLoRaPacket(ack);
             }
 
             updateOledDashboard();
@@ -415,7 +420,7 @@ void loop() {
                 processCommand(rxBufTang);
                 rxBufTang = "";
             }
-        } else if (rxBufTang.length() < 120) {
+        } else if (c >= 32 && c < 127 && rxBufTang.length() < 120) {
             rxBufTang += c;
         }
     }
@@ -428,7 +433,7 @@ void loop() {
                 processCommand(rxBufUsb);
                 rxBufUsb = "";
             }
-        } else if (rxBufUsb.length() < 120) {
+        } else if (c >= 32 && c < 127 && rxBufUsb.length() < 120) {
             rxBufUsb += c;
         }
     }

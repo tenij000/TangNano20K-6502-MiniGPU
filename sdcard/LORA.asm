@@ -1,11 +1,11 @@
 ; ============================================================================
-; LORA.asm - LilyGO T3 v1.6.1 (868 MHz SX1276 LoRa + OLED) Commander ($8000)
-; Start vanuit MiniGPU-BASIC met: BRUN "LORA"  (of vanuit Midnight Commander)
+; LORA.asm - LilyGO T3 v1.6.1 (868 MHz SX1276 LoRa + OLED) Studio v1.1 ($8000)
+; Start vanuit MiniGPU-BASIC met: DRIVE 3 : BRUN "LORA"
 ;
-; Hardware I/O-registers op de Tang Nano 20K (Pin 30 = TXD, Pin 31 = RXD):
+; Hardware I/O-registers op de Tang Nano 20K (Pin 30 = RXD, Pin 31 = TXD):
 ;   $A040 (IO_LORA_STATUS) : Bit 7 = RX byte klaar, Bit 6 = TX FIFO ruimte,
 ;                            Bits 5..0 = Aantal bytes in 64-byte RX FIFO
-;                            Schrijf $00 = Normale Hardware-modus (Pin 30/31)
+;                            Schrijf $00 = Echte Hardware-modus (Pin 30/31)
 ;                            Schrijf $80 = 868 MHz Hardware Simulator-modus
 ;   $A041 (IO_LORA_DATA)   : Lees = Pop RX byte, Schrijf = Zend TX byte (115200bd)
 ;   $A042 (IO_LORA_RSSI)   : Laatst ontvangen 868 MHz -RSSI in dBm (bijv. 48 = -48dBm)
@@ -25,15 +25,22 @@ IO_LORA_PKTS    = $A043
 
 ZP_PTR          = $60
 SIM_MODE        = $62
+AUTO_TIMER      = $63
 
 START:
         LDA #$01
-        STA IO_MODE             ; MODE 0 (tekst + grafische achtergrond)
+        STA IO_MODE             ; MODE 0 (tekst + 720p grafische achtergrond)
         LDA #$00
         STA SIM_MODE
-        STA IO_LORA_STATUS      ; Wis LoRa RX FIFO + zet op Hardware Pin 30/31
+        STA AUTO_TIMER
+        STA IO_LORA_STATUS      ; Wis LoRa RX FIFO + zet op Echte Hardware (Pin 30/31)
 
         JSR DRAW_UI
+
+        ; Vraag bij het opstarten direct live de 868.1 MHz status op van de LilyGO!
+        LDA #<CMD_INFO
+        LDY #>CMD_INFO
+        JSR SEND_LORA_CMD
 
 MAIN_LOOP:
         ; 1. Controleer of er bytes van de LilyGO T3 v1.6.1 in de 64-byte RX FIFO zitten
@@ -70,7 +77,15 @@ CheckKey:
         JMP MAIN_LOOP
 Not1:
         CMP #'2'
-        BNE Not2
+        BEQ DoPing
+        CMP #' '                ; SPATIE of ENTER stuurt ook direct een 868 MHz PING!
+        BEQ DoPing
+        CMP #$0D
+        BEQ DoPing
+        CMP #$0A
+        BEQ DoPing
+        JMP Not2
+DoPing:
         LDA #<CMD_PING
         LDY #>CMD_PING
         JSR SEND_LORA_CMD
@@ -116,6 +131,8 @@ ToggleSim:
         EOR #$80
         STA SIM_MODE
         STA IO_LORA_STATUS
+        LDA #$0A
+        JSR PUTCHAR
         LDA #<MSG_MODE_PREFIX
         LDY #>MSG_MODE_PREFIX
         JSR PRINT_STR
@@ -124,18 +141,23 @@ ToggleSim:
         LDA #<MSG_MODE_HW
         LDY #>MSG_MODE_HW
         JSR PRINT_STR
+        JSR PRINT_PROMPT
         JMP MAIN_LOOP
 SimOnMsg:
         LDA #<MSG_MODE_SIM
         LDY #>MSG_MODE_SIM
         JSR PRINT_STR
+        JSR PRINT_PROMPT
         JMP MAIN_LOOP
 
 ClearScreen:
         JSR DRAW_UI
+        JSR PRINT_PROMPT
         JMP MAIN_LOOP
 
 TypeCustom:
+        LDA #$0A
+        JSR PUTCHAR
         LDA #<MSG_PROMPT
         LDY #>MSG_PROMPT
         JSR PRINT_STR
@@ -152,12 +174,18 @@ TypeLoop:
         BEQ TypeEnter
         JSR PUTCHAR
         STA IO_LORA_DATA
+        JSR WAIT_LORA_BYTE
         JMP TypeLoop
 TypeEnter:
         LDA #$0A
         JSR PUTCHAR
         STA IO_LORA_DATA
+        JSR WAIT_LORA_BYTE
+        JMP MAIN_LOOP
 TypeDone:
+        LDA #$0A
+        JSR PUTCHAR
+        JSR PRINT_PROMPT
         JMP MAIN_LOOP
 
 EXIT_APP:
@@ -170,6 +198,8 @@ EXIT_APP:
 SEND_LORA_CMD:
         STA ZP_PTR
         STY ZP_PTR+1
+        LDA #$0A
+        JSR PUTCHAR
         LDA #'>'
         JSR PUTCHAR
         LDA #' '
@@ -180,12 +210,31 @@ SendLoop:
         BEQ SendDone
         JSR PUTCHAR
         STA IO_LORA_DATA
+        JSR WAIT_LORA_BYTE
         INY
         BNE SendLoop
 SendDone:
         RTS
 
-; --- Toon actuele hardware RSSI ($A042) en Packet Counter ($A043) ---
+; --- Wacht ~95 us (1 byte op 115200 baud = 86.8 us) zodat de 16-byte TX FIFO nooit overloopt ---
+WAIT_LORA_BYTE:
+        PHA
+        TXA
+        PHA
+        LDX #$00
+WaitByte1:
+        DEX
+        BNE WaitByte1
+        LDX #$00
+WaitByte2:
+        DEX
+        BNE WaitByte2
+        PLA
+        TAX
+        PLA
+        RTS
+
+; --- Toon actuele hardware RSSI ($A042), Packet Counter ($A043) + Keuze-Prompt ---
 PRINT_STATUS_LINE:
         LDA #<MSG_TELEM1
         LDY #>MSG_TELEM1
@@ -197,16 +246,19 @@ PRINT_STATUS_LINE:
         JSR PRINT_STR
         LDA IO_LORA_PKTS
         JSR PRINT_DEC8
-        LDA #<MSG_TELEM3
-        LDY #>MSG_TELEM3
+        LDA #$0A
+        JSR PUTCHAR
+PRINT_PROMPT:
+        LDA #<MSG_CMD_PROMPT
+        LDY #>MSG_CMD_PROMPT
         JSR PRINT_STR
         RTS
 
-; --- Print 8-bit getal in A (0..255) als decimaal ---
+; --- Print 8-bit getal in A (0..255) foutloos als decimaal (ook 100..109!) ---
 PRINT_DEC8:
-        LDY #$00
         CMP #100
-        BCC DecTens
+        BCC DecTensOnly
+        LDY #$00
 HundLoop:
         SBC #100
         INY
@@ -218,13 +270,27 @@ HundLoop:
         ADC #'0'
         JSR PUTCHAR
         PLA
+        ; Na honderdtallen MOET het tiental altijd geprint worden (ook als het 0 is, bijv. 102!)
         LDY #$00
-        JMP TensLoopCheck
-DecTens:
-        LDY #$00
-TensLoopCheck:
+TensAfterHund:
+        CMP #10
+        BCC PrintTensDigit
+        SBC #10
+        INY
+        JMP TensAfterHund
+PrintTensDigit:
+        PHA
+        TYA
+        CLC
+        ADC #'0'
+        JSR PUTCHAR
+        PLA
+        JMP DecOnes
+
+DecTensOnly:
         CMP #10
         BCC DecOnes
+        LDY #$00
 TensLoop:
         SBC #10
         INY
@@ -248,7 +314,6 @@ DRAW_UI:
         LDA #<MSG_HEADER
         LDY #>MSG_HEADER
         JSR PRINT_STR
-        JSR PRINT_STATUS_LINE
         RTS
 
 PRINT_STR:
@@ -274,33 +339,33 @@ PUTCHAR:
 MSG_HEADER:
         DB "======================================================", 10
         DB " LILYGO T3 v1.6.1 (868 MHz SX1276 LoRa + OLED) STUDIO", 10
-        DB " Tang Nano 20K Pin 30 (TX->IO12) & Pin 31 (RX<-IO4)", 10
+        DB " Tang Nano 20K Pin 30 (RX<-TX) & Pin 31 (TX->RX)", 10
         DB "======================================================", 10
-        DB " [1] AT+INFO  (Status, 868.1MHz, SF7, RSSI & VBAT)", 10
-        DB " [2] AT+PING  (Zend 868 MHz LoRa PING-pakket)", 10
-        DB " [3] AT+OLED  (Zet tekst op 0.96 inch LilyGO OLED)", 10
-        DB " [4] AT+SCAN  (Scan alle 8 EU868 LoRa-kanalen)", 10
-        DB " [5] AT+SEND  (Zend Hallo-bericht via 868 MHz LoRa)", 10
-        DB " [T] Typ eigen bericht/AT-commando  [L] Sim/HW Modus", 10
-        DB " [C] Wis scherm                     [Q/ESC] Afsluiten", 10
+        DB " [1] AT+INFO        (Status, 868.1MHz, RSSI & VBAT)", 10
+        DB " [2/SPATIE] AT+PING (Zend 868 MHz LoRa PING-pakket)", 10
+        DB " [3] AT+OLED        (Zet tekst op 0.96 inch OLED)", 10
+        DB " [4] AT+SCAN        (Scan alle 8 EU868 LoRa-kanalen)", 10
+        DB " [5] AT+SEND        (Zend Hallo-bericht op 868.1 MHz)", 10
+        DB " [T] Typ bericht    [L] Sim/HW Modus  [Q/ESC] Stop", 10
         DB "------------------------------------------------------", 10, 0
 
 MSG_TELEM1:
         DB "[HW $A042-$A043] 868MHz Signaal: -", 0
 MSG_TELEM2:
         DB " dBm | Pakketten: ", 0
-MSG_TELEM3:
-        DB 10, 0
+
+MSG_CMD_PROMPT:
+        DB "Kies toets [1..5 / SPATIE=Ping / T=Typ / Q=Stop] > ", 0
 
 MSG_MODE_PREFIX:
         DB "* Modus gewisseld naar: ", 0
 MSG_MODE_HW:
-        DB "ECHTE HARDWARE (Pin 30=TXD / Pin 31=RXD)", 10, 0
+        DB "ECHTE HARDWARE (Pin 30=RXD / Pin 31=TXD)", 10, 0
 MSG_MODE_SIM:
         DB "868 MHz HARDWARE SIMULATOR ($A040=128)", 10, 0
 
 MSG_PROMPT:
-        DB "Typ 868MHz bericht of AT+commando: ", 0
+        DB "Typ 868MHz bericht of AT+commando + ENTER: ", 0
 MSG_BYE:
         DB 10, "Terug naar MiniGPU-BASIC.", 10, 0
 
