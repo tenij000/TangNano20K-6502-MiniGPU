@@ -261,6 +261,8 @@ PrLoop:
         JSR PUTCHAR
         INY
         BNE PrLoop
+        INC ZP_PTR+1
+        JMP PrLoop
 PrDone:
         RTS
 

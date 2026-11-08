@@ -47,9 +47,16 @@
 #define LED_PIN         25
 #define BAT_ADC_PIN     35
 
-// --- UART Bridge naar Tang Nano 20K (Pin 30 = TXD, Pin 31 = RXD) ---
-#define TANG_RX_PIN     12   // Verbind met Tang Nano 20K Pin 30 (lora_txd)
-#define TANG_TX_PIN     4    // Verbind met Tang Nano 20K Pin 31 (lora_rxd)
+// --- UART Bridge naar Tang Nano 20K (Pin 30 = RXD, Pin 31 = TXD) ---
+// Ondersteunt AUTOMATISCH beide aansluitmanieren op de LilyGO T3 v1.6.1:
+//   Manier A (via de TX / RX pinnen op de LilyGO header):
+//     Tang Nano Pin 30 (lora_rxd) <--- LilyGO 'TX' pin (GPIO 1 / Serial TX)
+//     Tang Nano Pin 31 (lora_txd) ---> LilyGO 'RX' pin (GPIO 3 / Serial RX)
+//   Manier B (via IO12 / IO4 pinnen op de LilyGO header):
+//     Tang Nano Pin 30 (lora_rxd) <--- LilyGO IO4  (GPIO 4  / Serial1 TX)
+//     Tang Nano Pin 31 (lora_txd) ---> LilyGO IO12 (GPIO 12 / Serial1 RX)
+#define TANG_RX_PIN_B   12   // LilyGO 'IO12' (GPIO 12) <-- Tang Nano Pin 31 (lora_txd)
+#define TANG_TX_PIN_B   4    // LilyGO 'IO4'  (GPIO 4)  --> Tang Nano Pin 30 (lora_rxd)
 #define TANG_BAUD       115200
 
 // --- EU868 Standaard Instellingen ---
@@ -74,12 +81,12 @@ float readBatteryVoltage() {
     return (raw / 4095.0f) * 2.0f * 3.3f * 1.03f;
 }
 
-// Stuur een tekstregel naar zowel Tang Nano 20K (Serial1) als USB-debug (Serial)
+// Stuur een tekstregel naar Tang Nano 20K op zowel Serial (TX/RX header) als Serial1 (IO12/IO4)
 void sendLineToTang(const String &line) {
-    Serial1.print(line);
-    Serial1.print('\n');
     Serial.print(line);
     Serial.print('\n');
+    Serial1.print(line);
+    Serial1.print('\n');
 }
 
 // Stuur het 4-byte hardware telemetrie-frame (0xF5) naar de Tang Nano 20K FPGA
@@ -98,6 +105,7 @@ void sendHardwareTelemetry() {
     frame[1] = (uint8_t)negRssi;
     frame[2] = (uint8_t)snrBiased;
     frame[3] = g_pktCount;
+    Serial.write(frame, 4);
     Serial1.write(frame, 4);
 }
 
@@ -109,6 +117,7 @@ void sendHardwareRtcSync(uint8_t hr, uint8_t mn, uint8_t sc) {
     frame[1] = 0x80 | (hr % 24);
     frame[2] = 0x80 | (mn % 60);
     frame[3] = 0x80 | (sc % 60);
+    Serial.write(frame, 4);
     Serial1.write(frame, 4);
 }
 
@@ -327,8 +336,10 @@ void setup() {
     digitalWrite(LED_PIN, HIGH);
     analogReadResolution(12);
 
-    Serial.begin(115200);
-    Serial1.begin(TANG_BAUD, SERIAL_8N1, TANG_RX_PIN, TANG_TX_PIN);
+    // Koppel zowel de TX/RX headerpinnen (Serial: TX=GPIO1, RX=GPIO3)
+    // als de IO12/IO4 headerpinnen (Serial1: RX=GPIO12, TX=GPIO4)!
+    Serial.begin(TANG_BAUD);
+    Serial1.begin(TANG_BAUD, SERIAL_8N1, TANG_RX_PIN_B, TANG_TX_PIN_B);
 
     // Start 0.96" SSD1306 I2C OLED (SDA=21, SCL=22)
     Wire.begin(OLED_SDA, OLED_SCL);
@@ -396,7 +407,7 @@ void loop() {
         }
     }
 
-    // 2. Lees commando's van de Tang Nano 20K (Pin 30 -> GPIO 12)
+    // 2. Lees commando's van de Tang Nano 20K via IO12/IO4 pinnen (Serial1)
     while (Serial1.available()) {
         char c = (char)Serial1.read();
         if (c == '\n' || c == '\r') {
@@ -409,7 +420,7 @@ void loop() {
         }
     }
 
-    // 3. Lees commando's van USB-Serial (voor directe PC-test)
+    // 3. Lees commando's van de Tang Nano 20K via TX/RX headerpinnen (Serial)
     while (Serial.available()) {
         char c = (char)Serial.read();
         if (c == '\n' || c == '\r') {

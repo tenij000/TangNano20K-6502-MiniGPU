@@ -63,7 +63,9 @@ IO_LOC "w5500_rst" 29;
 IO_PORT "w5500_rst" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=8 BANK_VCCIO=3.3;
 
 // LilyGO T3 v1.6.1 (868 MHz SX1276 LoRa + ESP32 + OLED) Co-Processor UART (115200 baud: Pins 30, 31)
-IO_LOC "lora_txd" 30;
-IO_PORT "lora_txd" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=8 BANK_VCCIO=3.3;
-IO_LOC "lora_rxd" 31;
+// Pin 30 (lora_rxd) <--- LilyGO TX (GPIO 1 / Serial TX)
+// Pin 31 (lora_txd) ---> LilyGO RX (GPIO 3 / Serial RX)
+IO_LOC "lora_rxd" 30;
 IO_PORT "lora_rxd" IO_TYPE=LVCMOS33 PULL_MODE=UP BANK_VCCIO=3.3;
+IO_LOC "lora_txd" 31;
+IO_PORT "lora_txd" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=8 BANK_VCCIO=3.3;

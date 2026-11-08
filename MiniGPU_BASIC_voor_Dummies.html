@@ -3817,17 +3817,17 @@ RUN</pre></div>
       <p>Dankzij <strong><code>POKE $A040, 128</code></strong> (de ingebouwde 868 MHz hardware-simulator in de FPGA) kun je dit programma <strong>nu meteen met 1 klik live testen</strong>, óók als je de 3 draadjes naar de LilyGO nog niet hebt aangesloten! Zodra je de LilyGO op Pin 30 &amp; 31 aansluit, verander je <code>128</code> simpelweg in <code>0</code> (<code>POKE $A040, 0</code>):</p>
       <div class="code-card"><pre>NEW
 10 REM === LILYGO T3 v1.6.1 (868 MHz LoRa) STATUS &amp; RSSI TEST ($A040-$A043) ===
-20 REM Gebruik POKE $A040, 128 voor 868MHz Simulator of POKE $A040, 0 voor Pin 30/31!
-30 CLS : POKE $A040, 128
+20 REM POKE $A040, 0 = Echte LilyGO op Pin 30/31 (of POKE $A040, 128 = Simulator)
+30 CLS : POKE $A040, 0
 40 PRINT "=== LILYGO T3 v1.6.1 (868.1 MHz SX1276 LoRa) TEST ==="
 50 PRINT "1. Zend commando 'AT' naar $A041..."
-60 POKE $A041, 65 : POKE $A041, 84 : POKE $A041, 10 : WAIT 5
+60 POKE $A041, 65 : POKE $A041, 84 : POKE $A041, 10 : WAIT 8
 70 S = PEEK($A040) : R = PEEK($A042) : P = PEEK($A043)
 80 PRINT "   Status ($A040) = "; S; " (Bytes in RX FIFO = "; S &amp; 63; ")"
 90 PRINT "   Signaalsterkte = -"; R; " dBm (@ 868.1 MHz)"
 100 PRINT "   LoRa Pakketten = "; P
-110 PRINT "2. Antwoord uit 64-byte Hardware RX FIFO ($A041): ";
-120 FOR I = 1 TO 32
+110 PRINT "2. Antwoord van echte LilyGO T3 v1.6.1 ($A041): ";
+120 FOR I = 1 TO 64
 130   IF (PEEK($A040) &amp; 128) THEN POKE $A001, PEEK($A041)
 140 NEXT I
 150 BEEP 1047, 8 : PRINT "KLAAR! (Typ DRIVE 3 : BRUN LORA voor de 6502 Studio!)"
@@ -3837,7 +3837,7 @@ RUN</pre></div>
       <p>Dit BASIC-programma tekent een live <strong>868.1 MHz LoRa Signaalsterkte-Analyzer &amp; Ping-Zender</strong> op het 640×360 scherm en speelt bij elk ontvangen LoRa-pakket een radar-ping via HDMI:</p>
       <div class="code-card"><pre>NEW
 10 REM === GRAFISCHE 868.1 MHz LORA RADAR &amp; RSSI METER (MODE 1) ===
-20 POKE $A040, 128 : POKE $A043, 0
+20 POKE $A040, 0 : POKE $A043, 0
 30 MODE 1 : TARGET 0 : BIGSPR 0,0,0,0 : BIGSPR 1,0,0,0
 40 FOR T = 1 TO 60
 50   CLEAR 0
