@@ -22,6 +22,8 @@ module top(
     output wire       w5500_mosi, // Pin 25 (W5500 MOSI)
     input  wire       w5500_miso, // Pin 26 (W5500 MISO)
     output wire       w5500_rst,  // Pin 29 (W5500 RSTn)
+    output wire       lora_txd,   // Pin 30 (LilyGO T3 v1.6.1 868MHz LoRa RX / GPIO12)
+    input  wire       lora_rxd,   // Pin 31 (LilyGO T3 v1.6.1 868MHz LoRa TX / GPIO4)
     output wire [1:0] led,
 
     // SDRAM Physical Pins
@@ -227,6 +229,71 @@ module top(
         .sd_miso(w5500_miso)
     );
 
+    // --- LilyGO T3 v1.6.1 868 MHz LoRa & OLED Co-Processor UART ($A040-$A043: 115200 baud, Pins 30/31, 0 BSRAMs) ---
+    wire [7:0] lora_rx_byte;
+    wire       lora_rx_valid;
+
+    uart_rx #(
+        .CLK_FREQ(27_000_000),
+        .BAUD_RATE(115200)
+    ) lora_uart_rx_inst (
+        .clk(sys_clk),
+        .reset(reset),
+        .rx(lora_rxd),
+        .data(lora_rx_byte),
+        .valid(lora_rx_valid)
+    );
+
+    (* syn_ramstyle = "distributed_ram" *) reg [7:0] lora_rx_fifo [0:63];
+    reg [5:0]  lora_rx_wptr   = 6'd0;
+    reg [5:0]  lora_rx_rptr   = 6'd0;
+    reg [6:0]  lora_rx_count  = 7'd0;
+    reg [1:0]  lora_mode      = 2'b00; // 00=Normal Pin 30/31, 01=Raw Loopback ($40), 10=868MHz Sim ($80)
+    reg [7:0]  lora_rssi_reg  = 8'd48; // -48 dBm default
+    reg [7:0]  lora_pkts_reg  = 8'd0;
+    reg [1:0]  lora_tel_state = 2'd0;
+    reg [1:0]  lora_rtc_state = 2'd0;
+    reg [4:0]  lora_sim_idx   = 5'd0;
+
+    (* syn_ramstyle = "distributed_ram" *) reg [7:0] lora_tx_fifo [0:15];
+    reg [3:0]  lora_tx_wptr   = 4'd0;
+    reg [3:0]  lora_tx_rptr   = 4'd0;
+    reg [4:0]  lora_tx_count  = 5'd0;
+    reg [9:0]  lora_tx_shift  = 10'h3FF;
+    reg [7:0]  lora_tx_clkcnt = 8'd0;
+    reg [3:0]  lora_tx_bitidx = 4'd0;
+    reg        lora_tx_active = 1'b0;
+    reg        lora_txd_reg   = 1'b1;
+    assign     lora_txd       = lora_txd_reg;
+
+    wire [7:0] lora_rx_head   = (lora_rx_count != 7'd0) ? lora_rx_fifo[lora_rx_rptr] : 8'h00;
+    wire [7:0] lora_tx_head   = lora_tx_fifo[lora_tx_rptr];
+    wire       lora_tx_full   = (lora_tx_count == 5'd16);
+    wire       lora_tx_wait   = cpu_we && (cpu_ab == 16'hA041) && lora_tx_full;
+
+    reg [7:0] lora_sim_char;
+    always @(*) begin
+        case (lora_sim_idx)
+            5'd1:    lora_sim_char = "+";
+            5'd2:    lora_sim_char = "L";
+            5'd3:    lora_sim_char = "O";
+            5'd4:    lora_sim_char = "R";
+            5'd5:    lora_sim_char = "A";
+            5'd6:    lora_sim_char = "8";
+            5'd7:    lora_sim_char = "6";
+            5'd8:    lora_sim_char = "8";
+            5'd9:    lora_sim_char = ":";
+            5'd10:   lora_sim_char = "O";
+            5'd11:   lora_sim_char = "K";
+            5'd12:   lora_sim_char = " ";
+            5'd13:   lora_sim_char = "-";
+            5'd14:   lora_sim_char = "4";
+            5'd15:   lora_sim_char = "6";
+            5'd16:   lora_sim_char = 8'h0A;
+            default: lora_sim_char = 8'h0A;
+        endcase
+    end
+
     // --- 4 MB Internal SDRAM-Disk ($A012 - $A015) ---
     reg [7:0]  rd_addr_lo    = 8'h00;
     reg [7:0]  rd_addr_hi    = 8'h00;
@@ -323,7 +390,7 @@ module top(
                             !a012_reading;
     wire cpu_rdy          = !delay_active && !pcm_wait && !cpu_gpu_busy && !restore_bg_busy && !sd_busy &&
                             !w5500_busy && !term_busy && !term_rx_valid_cpu && !rd_busy &&
-                            !adma_steal_cycle && !adma_fetching;
+                            !adma_steal_cycle && !adma_fetching && !lora_tx_wait;
 
     // --- 100 Hz Hardware System Timer ($A003), LFSR ($A005) & Hardware RTC ($A007-$A009) ---
     reg [18:0] sys_timer_cnt = 0;
@@ -425,6 +492,23 @@ module top(
             adma_timer         <= 12'd0;
             a012_reading       <= 1'b0;
             a014_latch         <= 8'h00;
+            lora_rx_wptr       <= 6'd0;
+            lora_rx_rptr       <= 6'd0;
+            lora_rx_count      <= 7'd0;
+            lora_mode          <= 2'b00;
+            lora_rssi_reg      <= 8'd48;
+            lora_pkts_reg      <= 8'd0;
+            lora_tel_state     <= 2'd0;
+            lora_rtc_state     <= 2'd0;
+            lora_sim_idx       <= 5'd0;
+            lora_tx_wptr       <= 4'd0;
+            lora_tx_rptr       <= 4'd0;
+            lora_tx_count      <= 5'd0;
+            lora_tx_shift      <= 10'h3FF;
+            lora_tx_clkcnt     <= 8'd0;
+            lora_tx_bitidx     <= 4'd0;
+            lora_tx_active     <= 1'b0;
+            lora_txd_reg       <= 1'b1;
         end else begin
             if (a012_reading && !rd_busy) begin
                 a014_latch   <= rd_dout;
@@ -667,6 +751,131 @@ module top(
                 w5500_ctrl <= cpu_do[1:0];
             end
 
+            // --- LilyGO T3 v1.6.1 868 MHz LoRa & OLED Co-Processor ($A040 - $A043) ---
+            if (cpu_rdy && cpu_we && cpu_ab == 16'hA042) begin
+                lora_rssi_reg <= cpu_do;
+            end
+            if (cpu_rdy && cpu_we && cpu_ab == 16'hA043) begin
+                lora_pkts_reg <= cpu_do;
+            end
+
+            // LoRa 16-byte TX FIFO & 115200 baud Transmitter (234 cycles/bit @ 27 MHz)
+            begin : lora_tx_block
+                reg tx_push;
+                reg tx_pop;
+                tx_push = (cpu_rdy && cpu_we && cpu_ab == 16'hA041 && !lora_tx_full);
+                tx_pop  = 1'b0;
+
+                if (tx_push) begin
+                    lora_tx_fifo[lora_tx_wptr] <= cpu_do;
+                    lora_tx_wptr <= lora_tx_wptr + 4'd1;
+                end
+
+                if (lora_tx_active) begin
+                    if (lora_tx_clkcnt < 8'd233) begin
+                        lora_tx_clkcnt <= lora_tx_clkcnt + 8'd1;
+                    end else begin
+                        lora_tx_clkcnt <= 8'd0;
+                        lora_txd_reg   <= lora_tx_shift[0];
+                        lora_tx_shift  <= {1'b1, lora_tx_shift[9:1]};
+                        if (lora_tx_bitidx < 4'd9) begin
+                            lora_tx_bitidx <= lora_tx_bitidx + 4'd1;
+                        end else begin
+                            lora_tx_active <= 1'b0;
+                        end
+                    end
+                end else begin
+                    lora_txd_reg <= 1'b1;
+                    if (lora_tx_count != 5'd0) begin
+                        lora_tx_active <= 1'b1;
+                        lora_tx_shift  <= {1'b1, lora_tx_head, 1'b0};
+                        lora_tx_rptr   <= lora_tx_rptr + 4'd1;
+                        lora_tx_bitidx <= 4'd0;
+                        lora_tx_clkcnt <= 8'd0;
+                        tx_pop         = 1'b1;
+                    end
+                end
+
+                if (tx_push && !tx_pop)
+                    lora_tx_count <= lora_tx_count + 5'd1;
+                else if (!tx_push && tx_pop)
+                    lora_tx_count <= lora_tx_count - 5'd1;
+            end
+
+            // LoRa 64-byte RX FIFO, Telemetry Snooper (0xF5) & Loopback/868MHz Simulator ($A040)
+            if (cpu_rdy && cpu_we && cpu_ab == 16'hA040) begin
+                lora_rx_wptr   <= 6'd0;
+                lora_rx_rptr   <= 6'd0;
+                lora_rx_count  <= 7'd0;
+                lora_tel_state <= 2'd0;
+                lora_rtc_state <= 2'd0;
+                lora_sim_idx   <= 5'd0;
+                lora_mode      <= cpu_do[7:6];
+            end else begin : lora_rx_block
+                reg       rx_push;
+                reg [7:0] rx_wdata;
+                reg       rx_pop;
+                rx_push  = 1'b0;
+                rx_wdata = 8'h00;
+                rx_pop   = (cpu_rdy && !cpu_we && cpu_ab == 16'hA041 && lora_rx_count != 7'd0);
+
+                if (lora_rx_valid) begin
+                    if (lora_tel_state == 2'd1) begin
+                        lora_rssi_reg  <= lora_rx_byte;
+                        lora_tel_state <= 2'd2;
+                    end else if (lora_tel_state == 2'd2) begin
+                        lora_tel_state <= 2'd3;
+                    end else if (lora_tel_state == 2'd3) begin
+                        lora_pkts_reg  <= lora_rx_byte;
+                        lora_tel_state <= 2'd0;
+                    end else if (lora_rtc_state == 2'd1) begin
+                        if (lora_rx_byte[5:0] < 6'd24) rtc_hour <= lora_rx_byte[4:0];
+                        lora_rtc_state <= 2'd2;
+                    end else if (lora_rtc_state == 2'd2) begin
+                        if (lora_rx_byte[5:0] < 6'd60) rtc_min <= lora_rx_byte[5:0];
+                        lora_rtc_state <= 2'd3;
+                    end else if (lora_rtc_state == 2'd3) begin
+                        if (lora_rx_byte[5:0] < 6'd60) rtc_sec <= lora_rx_byte[5:0];
+                        lora_rtc_state <= 2'd0;
+                    end else if (lora_rx_byte == 8'hF5) begin
+                        lora_tel_state <= 2'd1;
+                    end else if (lora_rx_byte == 8'hF4) begin
+                        lora_rtc_state <= 2'd1;
+                    end else begin
+                        rx_push  = 1'b1;
+                        rx_wdata = lora_rx_byte;
+                    end
+                end else if (cpu_rdy && cpu_we && cpu_ab == 16'hA041) begin
+                    if (lora_mode == 2'b01) begin
+                        rx_push  = 1'b1;
+                        rx_wdata = cpu_do;
+                    end else if (lora_mode == 2'b10 && (cpu_do == 8'h0D || cpu_do == 8'h0A)) begin
+                        lora_sim_idx  <= 5'd1;
+                        lora_pkts_reg <= lora_pkts_reg + 8'd1;
+                        lora_rssi_reg <= 8'd42 + {5'd0, lfsr[2:0]};
+                    end
+                end else if (lora_sim_idx != 5'd0) begin
+                    rx_push  = 1'b1;
+                    rx_wdata = lora_sim_char;
+                    if (lora_sim_idx == 5'd16)
+                        lora_sim_idx <= 5'd0;
+                    else
+                        lora_sim_idx <= lora_sim_idx + 5'd1;
+                end
+
+                if (rx_push && lora_rx_count < 7'd64) begin
+                    lora_rx_fifo[lora_rx_wptr] <= rx_wdata;
+                    lora_rx_wptr <= lora_rx_wptr + 6'd1;
+                end
+                if (rx_pop) begin
+                    lora_rx_rptr <= lora_rx_rptr + 6'd1;
+                end
+                if ((rx_push && lora_rx_count < 7'd64) && !rx_pop)
+                    lora_rx_count <= lora_rx_count + 7'd1;
+                else if (!(rx_push && lora_rx_count < 7'd64) && rx_pop)
+                    lora_rx_count <= lora_rx_count - 7'd1;
+            end
+
             // 16-Bit Stereo Sound Card Instrument ($A00A) & FX/ADSR Control ($A00B)
             synth_inst_we <= 1'b0;
             if (cpu_rdy && cpu_we && cpu_ab == 16'hA00A) begin
@@ -860,6 +1069,14 @@ module top(
                 cpu_di <= w5500_rx_data;
             end else if (cpu_ab == 16'hA031) begin
                 cpu_di <= {6'b000000, w5500_ctrl};
+            end else if (cpu_ab == 16'hA040) begin
+                cpu_di <= {(lora_rx_count != 7'd0), !lora_tx_full, (lora_rx_count > 7'd63) ? 6'd63 : lora_rx_count[5:0]};
+            end else if (cpu_ab == 16'hA041) begin
+                cpu_di <= lora_rx_head;
+            end else if (cpu_ab == 16'hA042) begin
+                cpu_di <= lora_rssi_reg;
+            end else if (cpu_ab == 16'hA043) begin
+                cpu_di <= lora_pkts_reg;
             end else if (cpu_ab >= 16'hA400 && cpu_ab < 16'hB000) begin
                 cpu_di <= ext_rom_dout;
             end else if (cpu_ab >= 16'hE000) begin

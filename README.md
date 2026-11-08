@@ -141,3 +141,18 @@ Bij het opstarten zitten deze 16×16 sprites direct klaar in het FPGA-geheugen:
   - Grafische Windows-tool waarmee je elk `.MP3`- of `.WAV`-bestand op je PC (automatisch gedecodeerd via Windows Media / ACM) kunt beluisteren, het gewenste aantal SDRAM-banken (`1` t/m `30` banken = `8s` t/m `4m06s`) en sample-rate (`8k..32k Hz`) kunt kiezen, en direct met één klik naar een van de **8 MicroSD `.MP3`-slots (`Sector $2001`)** of **16 `.WAV`-slots (`Sector $2000`)** kunt converteren en uploaden.
 - **Interactief Handboek (`MiniGPU_BASIC_voor_Dummies.html` / `dummies_boek.bat`)**:
   - Volledig Nederlandstalig handboek met live 1-klik **Stuur naar Tang Nano (`COM6`)** knoppen, inclusief `.WAV` Jukebox en `.MP3` Visualizer met Hulp-CPU streaming.
+
+### 7. LilyGO TTGO T3 v1.6.1 (868 MHz SX1276 LoRa + 0.96" OLED) Co-Processor (`$A040..$A043` & `BRUN "LORA"`)
+- **Hardware-aansluiting (3 draden, 3.3V LVCMOS33, 115200 baud 8-N-1)**:
+  - Tang Nano **Pin `30` (`lora_txd`)** `--->` LilyGO **`GPIO 12` (`Serial1 RX`)**
+  - Tang Nano **Pin `31` (`lora_rxd`)** `<---` LilyGO **`GPIO 4` (`Serial1 TX`)**
+  - **`GND`** `<-->` **`GND`**
+- **Custom ESP32 Firmware (`lilygo_t3_lora868/lilygo_t3_lora868.ino`)**:
+  - Volledige 868.1 MHz Semtech SX1276 LoRa Transceiver (`SF7..SF12`, `863..870 MHz` EU868 ISM-band, automatische `PONG`-responder en 8-kanaals EU868 spectrum-scanner `AT+SCAN`), live dashboard + `AT+OLED=...` tekstweergave op het 0.96" SSD1306 I2C OLED-scherm, LiPo-batterijmeter (`GPIO 35`), automatische hardware RSSI/pakketteller-telemetrie (`0xF5`) én Wi-Fi NTP atoomklok-synchronisatie (`0xF4` -> zet direct `$A007–$A009` op het 720p HDMI-scherm!).
+- **6502 I/O-registers (`$A040–$A043`, 0 BSRAMs)**:
+  - **`$A040` (`IO_LORA_STATUS`)**: Bit 7 (`128`) = RX-byte klaar in 64-byte hardware FIFO, Bit 6 (`64`) = TX FIFO heeft ruimte, Bits 5..0 (`0..63`) = aantal wachtende RX-bytes. Schrijf `0` = normale hardware-modus (Pin 30/31), `64` = UART loopback, `128` = **ingebouwde 868 MHz LoRa Simulator-modus**.
+  - **`$A041` (`IO_LORA_DATA`)**: `PEEK($A041)` leest de volgende byte uit de 64-byte RX FIFO; `POKE $A041, byte` verzendt via de 16-byte TX FIFO op 115200 baud naar de LilyGO.
+  - **`$A042` (`IO_LORA_RSSI`)**: Laatst ontvangen 868 MHz **`-RSSI` in dBm** (`0..160`, bijv. `46` = `-46 dBm`).
+  - **`$A043` (`IO_LORA_PKTS`)**: Teller van ontvangen 868 MHz LoRa-pakketten (`0..255`).
+- **6502 Studio-App (`DRIVE 3 : BRUN "LORA"` / `sdcard/LORA.asm`)**:
+  - Interactieve 868 MHz LoRa & OLED Commander op `$8000` met sneltoetsen voor `AT+INFO` (`1`), `AT+PING` (`2`), `AT+OLED` (`3`), `AT+SCAN` (`4`), `AT+SEND` (`5`), vrije tekst/AT-invoer (`T`) en schakelen tussen echte Pin 30/31 hardware en de 868 MHz hardware-simulator (`L`).

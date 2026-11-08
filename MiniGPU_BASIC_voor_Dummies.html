@@ -756,6 +756,7 @@
             <button class="sbtn" onclick="sendLineCmd('SD : DRIVE 1 : BRUN \x22TELETEKST\x22')" title="Start Live NOS Teletekst op Drive D1!">📺 Teletekst</button>
             <button class="sbtn" onclick="sendLineCmd('SD : DRIVE 1 : BRUN \x22DUNGEON\x22')" title="Start de 3D First-Person Dungeon Crawler op Drive D1!">⚔️ 3D Dungeon</button>
             <button class="sbtn" onclick="sendLineCmd('SD : DRIVE 0 : BRUN \x22FTP\x22')" title="Start de W5500 FTP- &amp; Eigen 6502 Webserver op http://192.168.178.201/ (:21 &amp; :80)!">🌐 FTP &amp; Web</button>
+            <button class="sbtn" onclick="sendLineCmd('SD : DRIVE 3 : BRUN \x22LORA\x22')" title="Start de LilyGO T3 v1.6.1 868 MHz LoRa &amp; OLED Studio op Drive D3!">📡 868MHz LoRa</button>
             <button class="sbtn" onclick="sendLineCmd('SD : DRIVE 0 : CAT')" title="Toon bestanden op de SD-kaart">💾 SD CAT</button>
             <button class="sbtn" onclick="clearMonitor()">🧹 Wis Log</button>
           </div>
@@ -804,6 +805,7 @@
       <li><a href="#h17_wav" style="padding-left:22px; font-size:0.81rem; color:#b45309;">↳ 🎧🤖 WAV-Commando, MP3 &amp; Audio Hulp-CPU!</a></li>
       <li><a href="#wavHulpCpuStudio" style="padding-left:22px; font-size:0.81rem; color:#b45309;">↳ 🎶 Live Audio Hulp-CPU Jukebox!</a></li>
       <li><a href="#webPageStudio" style="padding-left:22px; font-size:0.81rem; color:#b45309;">↳ 🌐 Live 6502 Webpagina-Studio!</a></li>
+      <li><a href="#h18_lora">H18: 📡 LilyGO T3 v1.6.1 (868 MHz LoRa + OLED) Co-Processor!</a></li>
       <li><a href="#spiekbriefje">📋 Het Grote Spiekbriefje</a></li>
     </ul>
   </nav>
@@ -3785,6 +3787,84 @@ RUN</pre></div>
 170 BRUN "FTP"
 RUN</pre></div>
 
+      <h3 class="chapter-title" id="h18_lora">📡 Hoofdstuk 18: LilyGO TTGO T3 v1.6.1 (868 MHz LoRa + 0.96" OLED) Co-Processor (<code>$A040–$A043</code> &amp; <code>BRUN "LORA"</code>)</h3>
+      <p>De Tang Nano 20K heeft op <strong>Pin <code>30</code> (<code>lora_txd</code>)</strong> en <strong>Pin <code>31</code> (<code>lora_rxd</code>)</strong> een tweede <strong>115200 baud Hardware UART</strong> met een <strong>64-byte hardware RX FIFO</strong> en <strong>16-byte TX FIFO</strong> speciaal voor het <strong>LilyGO TTGO T3 v1.6.1 (<code>868 MHz</code> Semtech SX1276 LoRa + ESP32 + 0.96" SSD1306 OLED)</strong> bordje! De complete custom ESP32-firmware staat klaar in <code>C:\6nov26\lilygo_t3_lora868\lilygo_t3_lora868.ino</code>.</p>
+
+      <table>
+        <thead>
+          <tr><th>Tang Nano 20K Pin</th><th>Richting</th><th>LilyGO T3 v1.6.1 Pin</th><th>Functie (3.3V LVCMOS33, 115200 baud)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Pin <code>30</code> (<code>lora_txd</code>)</strong></td><td><code>---&gt;</code></td><td><strong><code>GPIO 12</code> (<code>Serial1 RX</code>)</strong></td><td>6502 verzendt commando's / LoRa-pakketten (<code>POKE $A041, byte</code>)</td></tr>
+          <tr><td><strong>Pin <code>31</code> (<code>lora_rxd</code>)</strong></td><td><code>&lt;---</code></td><td><strong><code>GPIO 4</code> (<code>Serial1 TX</code>)</strong></td><td>6502 ontvangt 868 MHz LoRa-pakketten (<code>PEEK($A041)</code>) + Hardware Telemetrie (<code>0xF5</code>) &amp; NTP-Klok Sync (<code>0xF4</code>)</td></tr>
+          <tr><td><strong><code>GND</code></strong></td><td><code>&lt;--&gt;</code></td><td><strong><code>GND</code></strong></td><td>Gezamenlijke massa (geen level-shifter nodig: beide zijn 3.3V!)</td></tr>
+        </tbody>
+      </table>
+
+      <table>
+        <thead>
+          <tr><th>6502 Adres</th><th>Naam</th><th>Lezen met <code>PEEK</code></th><th>Schrijven met <code>POKE</code></th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong><code>$A040</code></strong></td><td><code>IO_LORA_STATUS</code></td><td><strong>Bit 7 (<code>128</code>)</strong>: <code>1</code> = RX-byte klaar in 64-byte FIFO<br><strong>Bit 6 (<code>64</code>)</strong>: <code>1</code> = TX FIFO heeft ruimte<br><strong>Bits 5..0 (<code>0..63</code>)</strong>: Aantal wachtende bytes in RX FIFO</td><td><code>POKE $A040, 0</code> = Wis FIFO + Echte Hardware-modus (Pin 30/31)<br><code>POKE $A040, 64</code> = Raw UART Loopback-modus<br><code>POKE $A040, 128</code> = <strong>Ingebouwde 868 MHz LoRa Simulator-modus</strong> (direct testen zonder draadjes!)</td></tr>
+          <tr><td><strong><code>$A041</code></strong></td><td><code>IO_LORA_DATA</code></td><td>Haalt de eerstvolgende ontvangen byte uit de 64-byte RX FIFO</td><td>Zendt 1 byte op 115200 baud naar de LilyGO T3 v1.6.1</td></tr>
+          <tr><td><strong><code>$A042</code></strong></td><td><code>IO_LORA_RSSI</code></td><td>Laatst ontvangen 868 MHz <strong><code>-RSSI</code> in dBm</strong> (bijv. <code>46</code> = <strong><code>-46 dBm</code></strong>)</td><td>Zet/reset de RSSI-waarde</td></tr>
+          <tr><td><strong><code>$A043</code></strong></td><td><code>IO_LORA_PKTS</code></td><td>Teller van ontvangen 868 MHz LoRa-pakketten (<code>0..255</code>)</td><td>Zet/reset de pakketteller (bijv. <code>POKE $A043, 0</code>)</td></tr>
+        </tbody>
+      </table>
+
+      <h4 class="sub-title">Voorbeeld 1: 868 MHz LoRa Status, Signaalsterkte (<code>-RSSI</code> in dBm) &amp; Antwoord Uitlezen in BASIC</h4>
+      <p>Dankzij <strong><code>POKE $A040, 128</code></strong> (de ingebouwde 868 MHz hardware-simulator in de FPGA) kun je dit programma <strong>nu meteen met 1 klik live testen</strong>, óók als je de 3 draadjes naar de LilyGO nog niet hebt aangesloten! Zodra je de LilyGO op Pin 30 &amp; 31 aansluit, verander je <code>128</code> simpelweg in <code>0</code> (<code>POKE $A040, 0</code>):</p>
+      <div class="code-card"><pre>NEW
+10 REM === LILYGO T3 v1.6.1 (868 MHz LoRa) STATUS &amp; RSSI TEST ($A040-$A043) ===
+20 REM Gebruik POKE $A040, 128 voor 868MHz Simulator of POKE $A040, 0 voor Pin 30/31!
+30 CLS : POKE $A040, 128
+40 PRINT "=== LILYGO T3 v1.6.1 (868.1 MHz SX1276 LoRa) TEST ==="
+50 PRINT "1. Zend commando 'AT' naar $A041..."
+60 POKE $A041, 65 : POKE $A041, 84 : POKE $A041, 10 : WAIT 5
+70 S = PEEK($A040) : R = PEEK($A042) : P = PEEK($A043)
+80 PRINT "   Status ($A040) = "; S; " (Bytes in RX FIFO = "; S &amp; 63; ")"
+90 PRINT "   Signaalsterkte = -"; R; " dBm (@ 868.1 MHz)"
+100 PRINT "   LoRa Pakketten = "; P
+110 PRINT "2. Antwoord uit 64-byte Hardware RX FIFO ($A041): ";
+120 FOR I = 1 TO 32
+130   IF (PEEK($A040) &amp; 128) THEN POKE $A001, PEEK($A041)
+140 NEXT I
+150 BEEP 1047, 8 : PRINT "KLAAR! (Typ DRIVE 3 : BRUN LORA voor de 6502 Studio!)"
+RUN</pre></div>
+
+      <h4 class="sub-title">Voorbeeld 2: Grafische 868 MHz LoRa Signaal- &amp; Pakket-Radar in <code>MODE 1</code></h4>
+      <p>Dit BASIC-programma tekent een live <strong>868.1 MHz LoRa Signaalsterkte-Analyzer &amp; Ping-Zender</strong> op het 640×360 scherm en speelt bij elk ontvangen LoRa-pakket een radar-ping via HDMI:</p>
+      <div class="code-card"><pre>NEW
+10 REM === GRAFISCHE 868.1 MHz LORA RADAR &amp; RSSI METER (MODE 1) ===
+20 POKE $A040, 128 : POKE $A043, 0
+30 MODE 1 : TARGET 0 : BIGSPR 0,0,0,0 : BIGSPR 1,0,0,0
+40 FOR T = 1 TO 60
+50   CLEAR 0
+60   RECT 0, 0, 640, 26, $03
+70   GTEXT 16, 9, "LILYGO T3 v1.6.1 - 868.1 MHz LORA RADAR ($A040-$A043) [ESC=STOP]", $FC
+80   REM Zend elke 15 frames een 868 MHz LoRa PING ("AT" + LF)
+90   IF (T % 15) = 1 THEN POKE $A041, 65 : POKE $A041, 84 : POKE $A041, 10 : BEEP 1318, 2
+100  REM Lees RX FIFO leeg
+110  FOR I = 1 TO 16 : IF (PEEK($A040) &amp; 128) THEN B = PEEK($A041)
+120  NEXT I
+130  R = PEEK($A042) : P = PEEK($A043)
+140  CIRCLE 160, 195, 110, $1C : CIRCLE 160, 195, 75, $0C : CIRCLE 160, 195, 40, $0C
+150  DISK 160, 195, 115 - R, RGB(0, 7, 1)
+160  RECT 320, 70, 290, 220, $24 : RECT 322, 72, 286, 216, $01
+170  GTEXT 340, 92,  "FREQUENTIE : 868.100 MHz (EU868)", $1F
+180  GTEXT 340, 120, "MODULATIE  : LORA SF7 BW125", $FF
+190  GTEXT 340, 155, "SIGNAAL    : -dBm BALK:", $FC
+200  W = (110 - R) * 3 : IF W &lt; 8 THEN W = 8
+210  RECT 340, 175, W, 18, $1C : RECT 340, 175, 240, 2, $FF
+220  GTEXT 340, 215, "ONTVANGEN PAKKETTEN ($A043):", $1F
+230  FOR K = 1 TO (P &amp; 15) : DISK 336 + K * 15, 242, 5, $FC : NEXT K
+240  FLIP : WAIT 6
+250  IF KEY = 27 THEN T = 60
+260 NEXT T
+270 MODE 0 : CLEAR $E3 : CLS : PRINT "868 MHz LORA RADAR GESTOPT. PAKKETTEN = "; P
+RUN</pre></div>
+
       <h3 class="chapter-title" id="spiekbriefje">📋 Bijlage A: Het Grote MiniGPU-BASIC 1.2 Spiekbriefje</h3>
       <table>
         <thead>
@@ -3843,6 +3923,8 @@ RUN</pre></div>
           <tr><td><code>BRUN "RFTS" / "PACMAN65"</code></td><td><code>SD : BRUN "RFTS"</code></td><td>Start Reach for the Stars (4X Space Strategy) of 60 FPS Arcade Pac-Man</td></tr>
           <tr><td><code>BRUN "DUNGEON" / "TELETEKST"</code></td><td><code>SD : DRIVE 1 : BRUN "DUNGEON"</code></td><td>Start 3D Dungeon Crawler (<em>Kerkers van Twente</em>) of Live NOS Teletekst (<code>100..899</code>)</td></tr>
           <tr><td><code>BRUN "FTP" / "WEB"</code></td><td><code>SD : DRIVE 0 : BRUN "FTP"</code></td><td>Start Eigen 6502 Webserver (<code>http://192.168.178.201/</code> met <code>INDEX</code>) + Dual-Port FTP-Server (<code>:21</code> &amp; <code>:80</code>) of WebSurf 1.2 Browser</td></tr>
+          <tr><td><code>PEEK/POKE $A040..$A043</code></td><td><code>POKE $A041,65 : R=PEEK($A042)</code></td><td><strong>LilyGO T3 v1.6.1 (868 MHz LoRa + OLED) Co-Processor (Pin 30/31 @ 115200bd):</strong> <code>$A040</code>=Status/Modus (<code>128</code>=868MHz Sim), <code>$A041</code>=64B RX / 16B TX Data, <code>$A042</code>=<code>-RSSI</code> (dBm), <code>$A043</code>=LoRa Pakketteller</td></tr>
+          <tr><td><code>BRUN "LORA"</code></td><td><code>SD : DRIVE 3 : BRUN "LORA"</code></td><td>Start de <strong>LilyGO T3 v1.6.1 (868 MHz SX1276 LoRa + OLED) Commander</strong> op <code>$8000</code> (<code>1</code>=Info, <code>2</code>=Ping, <code>3</code>=OLED-tekst, <code>4</code>=EU868 Scan, <code>5</code>=Zend, <code>L</code>=Sim/HW)</td></tr>
         </tbody>
       </table>
     </div>
