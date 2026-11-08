@@ -3565,76 +3565,62 @@ RUN</pre></div>
 310 WAV 0 : CLEAR $E3 : CLS : PRINT "MP3 SPELER GESTOPT!"
 RUN</pre></div>
 
-      <p><strong>Voorbeeld 7 — 📂 MicroSD <code>.MP3</code> Catalogus-Lezer in BASIC (leest Sector <code>$2001</code> en toont alle 8 lange <code>.MP3</code>-nummers!):</strong><br>
-      Wist je dat je vanuit BASIC rechtstreeks elke sector van de MicroSD-kaart in het interne geheugen kunt lezen met de ingebouwde ROM-routine <code>CALL $EA67</code>? De 8 lange <code>.MP3</code>-liedjes hebben hun eigen directory-tabel op <strong>MicroSD Sector <code>$2001</code></strong> (8 regels van 32 bytes: bytes <code>0..13</code> = bestandsnaam, byte <code>15</code> = aantal 64 KB SDRAM-banken, bytes <code>16..17</code> = startsector <code>$3000..$A000</code>). Onderstaand BASIC-programma leest Sector <code>$2001</code> in buffer <code>$2800</code> en toont van alle 8 <code>.MP3</code>-nummers de grootte in KB en de afspeelduur in seconden:</p>
-      <div class="code-card"><pre>10 REM === VOORBEELD 7: LEES DE MICROSD .MP3 DIRECTORY (SECTOR $2001) IN BASIC ===
+      <p><strong>Voorbeeld 8 — 📂 MicroSD <code>.MP3</code> Catalogus-Lezer in BASIC (leest Sector <code>$2001</code> en toont alle 8 lange <code>.MP3</code>-nummers met grootte &amp; tijdsduur!):</strong><br>
+      Naast het ingebouwde <code>MP3</code>-commando kun je vanuit BASIC ook rechtstreeks elke sector van de MicroSD-kaart in het interne geheugen lezen met de ingebouwde ROM-routine <code>CALL $EA67</code>! De 8 lange <code>.MP3</code>-liedjes hebben hun eigen directory-tabel op <strong>MicroSD Sector <code>$2001</code></strong> (8 regels van 32 bytes: bytes <code>0..3</code> = <code>"MP3!"</code>, bytes <code>4..19</code> = bestandsnaam, bytes <code>20..21</code> = startsector <code>$3000..$A000</code>, byte <code>23</code> = aantal 64 KB SDRAM-banken, byte <code>25</code> = afspeelduur in seconden). Onderstaand BASIC-programma leest Sector <code>$2001</code> in buffer <code>$2800</code> en toont van alle 8 <code>.MP3</code>-nummers de startsector, de grootte in KB en de exacte afspeelduur in seconden:</p>
+      <div class="code-card"><pre>10 REM === VOORBEELD 8: LEES DE MICROSD .MP3 DIRECTORY (SECTOR $2001) IN BASIC ===
 20 MODE 0 : POKE $A006, 3 : CLEAR $E3 : CLS
-30 PRINT "=== MICROSD .MP3 ALBUM CATALOGUS (SECTOR $2001 -> RAM $2800) ==="
+30 PRINT "=== MICROSD .MP3 ALBUM CATALOGUS (SECTOR $2001) ==="
+35 MP3
 40 POKE $0491, 0 : POKE $0492, 0 : CALL $E96A
 50 POKE $0496, 1 : POKE $0497, $20
 60 POKE $1C, 0 : POKE $1D, $28 : CALL $EA67
 70 FOR S = 0 TO 7
 80   A = $2800 + S * 32
-90   B = PEEK(A + 15)
-100  H = PEEK(A + 17)
-110  K = B * 64 : T = B * 8
-120  PRINT "TRACK #"; S + 1; " | SECTOR $"; H * 256; " | "; B; " BANKEN ("; K; " KB = ~"; T; " SEC)"
+90   B = PEEK(A + 23)
+110  K = B * 64 : T = PEEK(A + 25)
+120  PRINT "SONG #"; S + 1; " -> "; B; " SDRAM-BANKEN ("; K; " KB = "; T; " SECONDEN)"
 130 NEXT S
 140 PRINT "----------------------------------------------------------------"
-150 PRINT "TIP: START VOORBEELD 8 OF 9 OM DEZE 8 LANGE MP3'S AF TE SPELEN!"
+150 PRINT "TIP: START VOORBEELD 9 OM DEZE 8 LANGE MP3'S IN MODE 1 TE SPELEN!"
 RUN</pre></div>
 
-      <p><strong>Voorbeeld 8 — 🎸 Kies &amp; Stream Elk van de 8 Lange <code>.MP3</code>-Songs (<code>#1..#8</code> op Sector <code>$3000..$A000</code>) vanuit BASIC met Echte Live Sample-Equalizer (<code>PEEK($A016)</code>):</strong><br>
-      Met dit programma kies je tijdens het draaien met toets <strong><code>1..8</code></strong> welk van de 8 lange <code>.MP3</code>-liedjes op de MicroSD-kaart je wilt beluisteren (<code>1</code> = <em>Outfoxing the Fox</em>, <code>2</code> = <em>California Dreamin'</em>, <code>3</code> = <em>Monday Monday</em>, <code>4</code> = <em>Dedicated To The One I Love</em>, <code>5</code> = <em>Do You Wanna Dance</em>, <code>6</code> = <em>Spanish Harlem</em>, <code>7</code> = <em>Twist And Shout</em>, <code>8</code> = <em>I Call Your Name</em>). De snelle 81-byte 6502 loader op <code>$2E00</code> laadt 5 SDRAM-banken (<code>320 KB</code> = <strong>41 seconden onafgebroken <code>.MP3</code>-muziek!</strong> — of pas <code>B = 5</code> op regel 35 aan naar <code>B = 10</code> of <code>16</code> voor het volledige nummer van 2 min 11 sec!) in SDRAM Bank <code>20..24</code> en tekent een <strong>16-bands equalizer die live meebeweegt op de echte 8-bit audiosamples uit <code>PEEK($A016)</code></strong>:</p>
-      <div class="code-card"><pre>10 REM === VOORBEELD 8: 8-TRACK LANGE MP3 SPELER ($3000-$A000) + LIVE $A016 EQUALIZER ===
+      <p><strong>Voorbeeld 9 — 🎸 Volledig Scherm (<code>MODE 1</code>) 8-Track Lange <code>.MP3</code>-Speler (<code>MP3 1..8</code>) met Live 16-Bands Sample-Equalizer (<code>PEEK($A016)</code>):</strong><br>
+      Met dit programma kies je tijdens het draaien met toets <strong><code>1..8</code></strong> welk van de 8 lange <code>.MP3</code>-liedjes op de MicroSD-kaart je wilt beluisteren (<code>1</code> = <em>Outfoxing the Fox</em>, <code>2</code> = <em>California Dreamin'</em>, <code>3</code> = <em>Monday Monday</em>, <code>4</code> = <em>Dedicated To The One I Love</em>, <code>5</code> = <em>Do You Wanna Dance</em>, <code>6</code> = <em>Spanish Harlem</em>, <code>7</code> = <em>Twist And Shout</em>, <code>8</code> = <em>I Call Your Name</em>). Het ingebouwde <strong><code>MP3 S, R, 1</code></strong> commando laadt het volledige nummer in SDRAM Bank <code>17..32</code> en tekent een <strong>16-bands equalizer met piek-indicatoren en voortgangsbalk die live meebeweegt op de echte 8-bit audiosamples uit <code>PEEK($A016)</code></strong>:</p>
+      <div class="code-card"><pre>10 REM === VOORBEELD 9: FULLSCREEN 8-TRACK MP3 SPELER (MP3 1..8) + LIVE EQUALIZER ===
 20 MODE 1 : TARGET 1 : CLEAR $01
-30 POKE $2E00,$A9:POKE $2E01,$00:POKE $2E02,$8D:POKE $2E03,$1B:POKE $2E04,$A0:POKE $2E05,$8D
-32 POKE $2E06,$91:POKE $2E07,$04:POKE $2E08,$8D:POKE $2E09,$92:POKE $2E0A,$04:POKE $2E0B,$85
-34 POKE $2E0C,$60:POKE $2E0D,$20:POKE $2E0E,$6A:POKE $2E0F,$E9:POKE $2E10,$A5:POKE $2E11,$62
-36 POKE $2E12,$8D:POKE $2E13,$15:POKE $2E14,$A0:POKE $2E15,$A9:POKE $2E16,$00:POKE $2E17,$85
-38 POKE $2E18,$1C:POKE $2E19,$A9:POKE $2E1A,$06:POKE $2E1B,$85:POKE $2E1C,$1D:POKE $2E1D,$20
-40 POKE $2E1E,$67:POKE $2E1F,$EA:POKE $2E20,$A5:POKE $2E21,$60:POKE $2E22,$8D:POKE $2E23,$13
-42 POKE $2E24,$A0:POKE $2E25,$A0:POKE $2E26,$00:POKE $2E27,$8C:POKE $2E28,$12:POKE $2E29,$A0
-44 POKE $2E2A,$B9:POKE $2E2B,$00:POKE $2E2C,$06:POKE $2E2D,$8D:POKE $2E2E,$14:POKE $2E2F,$A0
-46 POKE $2E30,$C8:POKE $2E31,$D0:POKE $2E32,$F4:POKE $2E33,$E6:POKE $2E34,$60:POKE $2E35,$A5
-48 POKE $2E36,$60:POKE $2E37,$8D:POKE $2E38,$13:POKE $2E39,$A0:POKE $2E3A,$8C:POKE $2E3B,$12
-50 POKE $2E3C,$A0:POKE $2E3D,$B9:POKE $2E3E,$00:POKE $2E3F,$07:POKE $2E40,$8D:POKE $2E41,$14
-52 POKE $2E42,$A0:POKE $2E43,$C8:POKE $2E44,$D0:POKE $2E45,$F4:POKE $2E46,$E6:POKE $2E47,$60
-54 POKE $2E48,$D0:POKE $2E49,$CB:POKE $2E4A,$E6:POKE $2E4B,$62:POKE $2E4C,$C6:POKE $2E4D,$61
-56 POKE $2E4E,$D0:POKE $2E4F,$C0:POKE $2E50,$60
-60 S = 2 : B = 5 : GOSUB 260
-70 K = KEY
-80 IF (K &gt;= 49) &amp; (K &lt;= 56) THEN S = K - 48 : GOSUB 260
-90 IF (K = 80) | (K = 112) THEN R = (R &amp; 3) + 1 : POKE $A018,20:POKE $A019,0:POKE $A01A,B:POKE $A01B,R+128
-100 IF (K = 81) | (K = 113) | (K = 32) THEN GOTO 240
-110 FOR I = 0 TO 15
-120   V = ABS(PEEK($A016) - 128) * 2
-130   H = 10 + V + ((I * 17 + PEEK($A019) * 3) &amp; 47)
-140   IF H &gt; 176 THEN H = 176
-150   X = 48 + I * 34
-160   RECT X, 96, 26, 180 - H, $00
-170   C = $1C : IF H &gt; 90 THEN C = $FC
-180   IF H &gt; 138 THEN C = $E0
-190   RECT X, 276 - H, 26, H, C
-200   RECT X, 272 - H, 26, 4, $FF
-210 NEXT I
-220 P = (B * 256) - (PEEK($A01A) * 256 + PEEK($A019)) : IF P &lt; 0 THEN P = 0
-230 W = (P * 2) / B + 4 : RECT 48, 304, 536, 12, $00 : RECT 48, 304, W, 12, $1F
-235 GOTO 70
-240 WAV 0 : MODE 0 : CLEAR $E3 : CLS : PRINT "MP3 JUKEBOX AFGESLOTEN!" : END
+30 S = 1 : R = 1 : GOSUB 260
+40 K = KEY
+50 IF (K &gt;= 49) &amp; (K &lt;= 56) THEN S = K - 48 : GOSUB 260
+60 IF (K = 80) | (K = 112) THEN R = (R &amp; 3) + 1 : MP3 S, R, 1
+70 IF (K = 81) | (K = 113) | (K = 32) THEN GOTO 240
+80 FOR I = 0 TO 15
+90   V = ABS(PEEK($A016) - 128) * 2
+100  H = 10 + V + ((I * 17 + PEEK($A019) * 3) &amp; 47)
+110  IF H &gt; 176 THEN H = 176
+120  X = 48 + I * 34
+130  RECT X, 96, 26, 180 - H, $00
+140  C = $1C : IF H &gt; 90 THEN C = $FC
+150  IF H &gt; 138 THEN C = $E0
+160  RECT X, 276 - H, 26, H, C
+170  RECT X, 272 - H, 26, 4, $FF
+180 NEXT I
+190 P = (B * 256) - (PEEK($A01A) * 256 + PEEK($A019)) : IF P &lt; 0 THEN P = 0
+200 W = (P * 2) / B + 4 : IF W &gt; 536 THEN W = 536
+210 RECT 48, 304, 536, 12, $00 : RECT 48, 304, W, 12, $1F
+220 GOTO 40
+240 MP3 0 : MODE 0 : CLEAR $E3 : CLS : PRINT "MP3 JUKEBOX AFGESLOTEN!" : END
 260 RECT 0, 0, 640, 82, $04 : RECT 36, 88, 568, 244, $00
-270 GTEXT 16, 10, "BASIC 8-TRACK LANGE MP3 SPELER (SECTOR $3000-$A000 -> SDRAM BANK 20..24)", $FC
+270 GTEXT 16, 10, "BASIC 8-TRACK LANGE MP3 SPELER (MP3 1..8 OP SDRAM BANK 17..32)", $FC
 280 GTEXT 16, 28, "[1] Outfoxing  [2] Calif.Dreamin  [3] Monday Monday  [4] Dedicated", $FF
 290 GTEXT 16, 44, "[5] Do You...  [6] Spanish Harlem [7] Twist &amp; Shout  [8] Call Name", $FF
-300 GTEXT 16, 62, "LADEN VAN MP3 TRACK #", $1F : GTEXT 192, 62, STR$(S), $FC : GTEXT 224, 62, "(320 KB = 41 SEC)... EVEN GEDULD!", $1C
-310 POKE $0496, 0 : POKE $0497, $20 + S * 16 : POKE $61, B : POKE $62, 20 : CALL $2E00
-320 R = 1 : POKE $A018, 20 : POKE $A019, 0 : POKE $A01A, B : POKE $A01B, 129
-330 RECT 16, 60, 608, 16, $04
-340 GTEXT 16, 62, "SPEELT NU TRACK #", $1C : GTEXT 160, 62, STR$(S), $FC : GTEXT 192, 62, "| [1-8]=KIES TRACK  [P]=PITCH  [SPATIE/Q]=STOP", $FF
-350 RETURN
+300 GTEXT 16, 62, "LADEN VAN MP3 VANAF MICROSD... EVEN GEDULD!", $1F
+310 MP3 S, R, 1 : B = PEEK($A01A) : IF B &lt; 1 THEN B = 5
+320 RECT 16, 60, 608, 16, $04
+330 GTEXT 16, 62, "SPEELT NU MP3! | [1-8]=KIES SONG  [P]=PITCH  [SPATIE/Q]=STOP", $1C
+340 RETURN
 RUN</pre></div>
 
-      <p><strong>Voorbeeld 9 — 🎧 Start de Volledige Dual-Pane <code>MP3Commander 2.1</code> (<code>BRUN "MP3PLAY"</code>) &amp; Gebruik Achtergrond-MP3 (<code>Toets B</code>) in BASIC:</strong><br>
+      <p><strong>Voorbeeld 10 — 🎧 Start de Volledige Dual-Pane <code>MP3Commander 2.1</code> (<code>BRUN "MP3PLAY"</code>) &amp; Gebruik Achtergrond-MP3 (<code>Toets B</code>) in BASIC:</strong><br>
       Wil je alle 8 complete <code>.MP3</code>-liedjes (inclusief de volledige <strong>2:11 <em>California Dreamin'</em></strong> van 1.024 KB!) én alle 16 <code>.WAV</code>-geluiden bedienen met een echte Midnight-Commander interface, muisondersteuning en Auto-DJ Album-Loop? Klik dan hieronder op <strong>▶️ Test direct!</strong> om <code>MP3PLAY</code> te starten.<br>
       💡 <strong>Super-Tip (Toets <code>B</code> in <code>MP3PLAY</code>):</strong> Als je in <code>MP3PLAY</code> een lang <code>.MP3</code>-liedje start en daarna op toets <strong><code>B</code> (Background Play &amp; Exit)</strong> drukt, sluit <code>MP3PLAY</code> af terug naar de <code>&gt;</code> BASIC-prompt terwijl de <strong>Hardware Audio Hulp-CPU het complete <code>.MP3</code>-liedje van 2 minuten op de achtergrond blijft doorspelen!</strong> Je kunt daarna elk BASIC-programma of spel (zoals <code>DEMO 3</code> of de 10 Mini-Programma's uit Hoofdstuk 15) draaien met jouw gekozen <code>.MP3</code> als soundtrack!</p>
       <div class="code-card"><pre>SD : DRIVE 0 : BRUN "MP3PLAY"</pre></div>
@@ -4176,31 +4162,8 @@ async function sendLineCmd(cmd) {
   await runBasicCode(cmd);
 }
 
-const MP3_DRIVER_BOOT_JS = 'POKE $0491,0:CALL $E96A:POKE $0496,2:POKE $0497,$20:POKE $1C,0:POKE $1D,$2C:CALL $EA67';
 function expandMp3BasicLineJS(line) {
-  let used = false;
-  const mNum = line.match(/^(\s*\d+\s*)(.*)$/);
-  const prefix = mNum ? mNum[1] : '';
-  const rest = mNum ? mNum[2] : line;
-  const parts = rest.split(':').map(seg => {
-    const mWav0 = seg.match(/^(\s*)WAV\s+0\s*$/i);
-    if (mWav0) return `${mWav0[1]}POKE $A01B,0`;
-    const mMp3 = seg.match(/^(\s*IF\b.*?\bTHEN\s+|\s*)MP3(?:\s+(.*))?$/i);
-    if (!mMp3) return seg;
-    const lead = mMp3[1] || '';
-    const argsStr = (mMp3[2] || '').trim();
-    if (!argsStr) { used = true; return `${lead}CALL $2C00`; }
-    const args = argsStr.split(',').map(a => a.trim());
-    if (args.length === 1) {
-      if (args[0] === '0') return `${lead}POKE $A01B,0`;
-      used = true; return `${lead}POKE $63,${args[0]}:CALL $2C04`;
-    }
-    if (args.length === 2) {
-      used = true; return `${lead}POKE $63,${args[0]}:POKE $64,${args[1]}:CALL $2C08`;
-    }
-    used = true; return `${lead}POKE $63,${args[0]}:POKE $64,${args[1]}:POKE $65,${args[2]}:CALL $2C0C`;
-  });
-  return { line: prefix + parts.join(':'), used };
+  return { line, used: false };
 }
 
 async function runBasicCode(code, triggerBtn = null) {

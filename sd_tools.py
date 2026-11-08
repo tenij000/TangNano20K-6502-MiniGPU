@@ -564,86 +564,10 @@ MP3_DRIVER_BOOT_CMD = (
 
 def expand_mp3_in_basic_line(line: str):
     """
-    Vertaal BASIC `MP3`, `MP3 0`, `MP3 nr [, rate [, mode]]` (en `WAV 0`) naar
-    calls naar de residente Sector-$2002 MP3 Hulp-CPU driver op $2C00..$2C0C.
-    Retourneert (expanded_line, used_mp3_drv).
+    `STMT_MP3` (`MP3`, `MP3 0`, `MP3 1..8 [, rate [, mode]]`) is native in de
+    MiniGPU-BASIC 1.2 ROM ($A400-$AFFF), dus regels worden 1-op-1 doorgestuurd.
     """
-    out = []
-    used_mp3_drv = False
-    i = 0
-    n = len(line)
-    m_num = re.match(r"^(\s*\d+\s*)", line)
-    if m_num:
-        out.append(m_num.group(1))
-        i = m_num.end()
-
-    def repl_mp3_stmt(s):
-        nonlocal used_mp3_drv
-        m_then = re.match(r"^(\s*IF\b.*?\bTHEN\s+)(.*)$", s, re.IGNORECASE)
-        if m_then:
-            return m_then.group(1) + repl_mp3_stmt(m_then.group(2))
-        m_wav0 = re.match(r"^(\s*)WAV\s+0\s*$", s, re.IGNORECASE)
-        if m_wav0:
-            return f"{m_wav0.group(1)}POKE $A01B,0"
-        m_mp3 = re.match(r"^(\s*)MP3(?:\s+(.*))?$", s, re.IGNORECASE)
-        if not m_mp3:
-            return s
-        lead = m_mp3.group(1)
-        args_str = (m_mp3.group(2) or "").strip()
-        if not args_str:
-            used_mp3_drv = True
-            return f"{lead}CALL $2C00"
-        args = []
-        cur = []
-        depth = 0
-        q = False
-        for c in args_str:
-            if c == '"':
-                q = not q
-            elif not q:
-                if c == "(":
-                    depth += 1
-                elif c == ")":
-                    depth = max(0, depth - 1)
-                elif c == "," and depth == 0:
-                    args.append("".join(cur).strip())
-                    cur = []
-                    continue
-            cur.append(c)
-        args.append("".join(cur).strip())
-        if len(args) == 1:
-            if args[0] == "0":
-                return f"{lead}POKE $A01B,0"
-            used_mp3_drv = True
-            return f"{lead}POKE $63,{args[0]}:CALL $2C04"
-        elif len(args) == 2:
-            used_mp3_drv = True
-            return f"{lead}POKE $63,{args[0]}:POKE $64,{args[1]}:CALL $2C08"
-        else:
-            used_mp3_drv = True
-            return f"{lead}POKE $63,{args[0]}:POKE $64,{args[1]}:POKE $65,{args[2]}:CALL $2C0C"
-
-    while i < n:
-        m_rem = re.match(r"^(\s*(?:REM\b|').*)", line[i:], re.IGNORECASE)
-        if m_rem:
-            out.append(m_rem.group(1))
-            break
-        j = i
-        in_q = False
-        while j < n:
-            ch = line[j]
-            if ch == '"':
-                in_q = not in_q
-            elif ch == ":" and not in_q:
-                break
-            j += 1
-        out.append(repl_mp3_stmt(line[i:j]))
-        if j < n and line[j] == ":":
-            out.append(":")
-            i = j + 1
-        else:
-            break
-    return "".join(out), used_mp3_drv
+    return line, False
 
 
 def upload_file_to_sdcard(
