@@ -794,7 +794,7 @@
       <li><a href="#bigSprStudio" style="padding-left:22px; font-size:0.81rem; color:#b45309;">↳ 🦖 128×128 BigSprite Editor!</a></li>
       <li class="part-title">Deel VI: Het Deel van de Tienen</li>
       <li><a href="#h14">H14: 10 Veelgemaakte Fouten</a></li>
-      <li><a href="#h15">H15: Coole Mini-Programma's</a></li>
+      <li><a href="#h15">H15: 10 Coole Mini-Programma's!</a></li>
       <li class="part-title">Deel VII: Alle SD-Kaart Programma's</li>
       <li><a href="#h16">H16: 📀 Alle SD-Apps, Webserver, Teletekst, Pong &amp; Muis!</a></li>
       <li><a href="#h16_muis" style="padding-left:22px; font-size:0.81rem; color:#b45309;">↳ 🖱️🎨 MUIS.asm Muis-Test &amp; Teken-Studio!</a></li>
@@ -2135,8 +2135,10 @@ RUN</pre></div>
         <li><strong>Oude regels staan nog door mijn nieuwe programma heen!</strong> Begin een nieuw programma altijd met <strong><code>NEW</code></strong>.</li>
       </ol>
 
-      <h3 class="chapter-title" id="h15">Hoofdstuk 15: Drie Coole Mini-Programma's om direct te proberen</h3>
-      <h4 class="sub-title">1. Interactief W/A/S/D Schilderprogramma (Teken met gekleurde kwasten!)</h4>
+      <h3 class="chapter-title" id="h15">Hoofdstuk 15: 10 Coole Mini-Programma's in BASIC om direct te proberen</h3>
+      <p>Alle 10 onderstaande BASIC-programma's zijn <strong>100% kant-en-klaar</strong> voor jouw Tang Nano 20K. Klik bij elk voorbeeld op de groene knop <strong>▶️ Test direct!</strong> om het programma meteen via <code>COM6</code> op je HDMI-scherm uit te voeren, of klik op <strong>📝 Naar Editor</strong> om er zelf mee te experimenteren!</p>
+
+      <h4 class="sub-title">1. 🎨 Interactief W/A/S/D Schilderprogramma (Teken met gekleurde kwasten!)</h4>
       <div class="code-wrapper"><button class="copy-btn" onclick="copyCode(this)">📋 Kopieer</button><pre>NEW
 10 MODE 1 : TARGET 1 : CLEAR 0 : X = 320 : Y = 180 : C = $FC : R = 6
 20 RECT 0, 0, 640, 22, RGB(1, 1, 2)
@@ -2153,7 +2155,7 @@ RUN</pre></div>
 130 GOTO 40
 RUN</pre></div>
 
-      <h4 class="sub-title">2. Hypnotiserende 640×360 Neon-Web &amp; Regenboog-Tunnel</h4>
+      <h4 class="sub-title">2. 🕸️ Hypnotiserende 640×360 Neon-Web &amp; Regenboog-Tunnel</h4>
       <div class="code-wrapper"><button class="copy-btn" onclick="copyCode(this)">📋 Kopieer</button><pre>NEW
 10 MODE 1 : TARGET 1 : CLEAR 0
 20 FOR A = 0 TO 632 STEP 16
@@ -2167,7 +2169,7 @@ RUN</pre></div>
 100 GOTO 100
 RUN</pre></div>
 
-      <h4 class="sub-title">3. Moderne Kunst Generator (Mondriaan &amp; Geometrie Show)</h4>
+      <h4 class="sub-title">3. 🖼️ Moderne Kunst Generator (Mondriaan &amp; Geometrie Show)</h4>
       <div class="code-wrapper"><button class="copy-btn" onclick="copyCode(this)">📋 Kopieer</button><pre>NEW
 10 MODE 1 : TARGET 1 : CLEAR $FF
 20 FOR I = 1 TO 36
@@ -2180,6 +2182,231 @@ RUN</pre></div>
 90   RECT X, Y, W, H, 0 : RECT X + 3, Y + 3, W - 6, H - 6, C
 100 NEXT I
 110 WAIT 90 : GOTO 10
+RUN</pre></div>
+
+      <h4 class="sub-title">4. 🎧📊 Live <code>.WAV</code> &amp; <code>.MP3</code> Studio Equalizer &amp; VU-Meter (met echte <code>PEEK($A016)</code> Audio-Samples!)</h4>
+      <p>Terwijl de <strong>Hardware Audio Hulp-CPU (<code>$A018–$A01B</code>)</strong> op de achtergrond muziek of natuurgeluiden speelt, kun je op adres <strong><code>$A016</code></strong> in real-time de exacte 8-bit geluidsgolf (<code>0..255</code>, midden = <code>128</code>) uitlezen zonder dat het afspelen vertraagt! Druk tijdens dit programma op <strong><code>1..9</code></strong> om een ander MicroSD-geluid te kiezen, op <strong><code>F</code></strong> voor de Funk Drumbeat, op <strong><code>A</code></strong> voor Cyber Acid Bass, op <strong><code>P</code></strong> om de pitch/sample-rate te wisselen en op <strong><code>Q</code></strong> om te stoppen:</p>
+      <div class="code-wrapper"><button class="copy-btn" onclick="copyCode(this)">📋 Kopieer</button><pre>NEW
+10 REM === LIVE WAV/MP3 SPECTRUM EQUALIZER &amp; GOLF-METER ($A016) ===
+20 MODE 1 : TARGET 1 : CLEAR $01
+30 S = 12 : R = 1 : WAV 12, 1, 1
+40 RECT 0, 0, 640, 26, $04
+50 GTEXT 14, 9, "LIVE HULP-CPU EQUALIZER ($A016) | [1-9]=TRACK [F]=FUNK [A]=ACID [P]=PITCH [Q]=STOP", $FC
+60 RECT 36, 44, 568, 250, $00
+70 RECT 36, 310, 568, 34, $04
+80 K = KEY
+90 IF (K &gt;= 49) &amp; (K &lt;= 57) THEN S = K - 48 : WAV S, R, 1
+100 IF (K = 70) | (K = 102) THEN S = 12 : WAV 12, R, 1
+110 IF (K = 65) | (K = 97)  THEN S = 14 : WAV 14, R, 1
+120 IF (K = 80) | (K = 112) THEN R = R + 1 : IF R &gt; 4 THEN R = 1
+130 IF (K = 80) | (K = 112) THEN POKE $A019, 128 : POKE $A01B, R + 128
+140 IF (K = 81) | (K = 113) THEN GOTO 270
+150 FOR I = 0 TO 15
+160   V = ABS(PEEK($A016) - 128) * 2
+170   H = 12 + V + ((I * 19 + PEEK($A019) * 5) &amp; 63)
+180   IF H &gt; 220 THEN H = 220
+190   X = 48 + I * 34
+200   RECT X, 60, 26, 224 - H, $00
+210   C = $1C : IF H &gt; 110 THEN C = $FC
+220   IF H &gt; 165 THEN C = $E0
+230   RECT X, 284 - H, 26, H, C
+240   RECT X, 280 - H, 26, 4, $FF
+250 NEXT I
+255 W = (128 - PEEK($A019)) * 4 : IF W &lt; 4 THEN W = 4
+260 RECT 50, 321, 512, 12, $01 : RECT 50, 321, W, 12, $1F
+265 GOTO 80
+270 WAV 0 : MODE 0 : CLEAR $E3 : CLS : PRINT "EQUALIZER AFGESLOTEN!"
+RUN</pre></div>
+
+      <h4 class="sub-title">5. 🚀 Speelbare 60 FPS "Meteoren-Storm" Space Game + Achtergrondmuziek op de Hulp-CPU!</h4>
+      <p>Omdat de <strong>Audio Hulp-CPU</strong> zelfstandig <code>WAV 14, 1, 1</code> (<em>Cyber Acid Bass</em>) uit het SDRAM streamt, houdt de 6502 alle snelheid over voor een vloeiende dubbelgebufferde (<code>TARGET 0</code> + <code>FLIP</code>) space-game én live 16-bit FM-geluidseffecten! Bestuur je ruimteschip met <strong><code>W</code> / <code>S</code></strong> (of <strong><code>Pijl Omhoog</code> / <code>Omlaag</code></strong>) en ontwijk de gloeiende meteoren:</p>
+      <div class="code-wrapper"><button class="copy-btn" onclick="copyCode(this)">📋 Kopieer</button><pre>NEW
+10 REM === METEOREN-STORM ARCADE GAME + HULP-CPU SOUNDTRACK ===
+20 WAV 14, 1, 1 : POKE $A00A, 7 : POKE $A00B, 3
+30 MODE 1 : TARGET 0
+40 Y = 180 : P = 0 : L = 3
+50 M = 620 : N = 80 + RND(200) : S = 9
+60 U = 380 : V = 60 + RND(220) : T = 7
+70 CLEAR $01
+80 RECT 0, 0, 640, 26, $04
+90 GTEXT 14, 9, "METEOREN-STORM!  [W/S OF PIJL]=STUUR   [Q]=STOP   SCORE:", $FC
+100 GTEXT 475, 9, STR$(P), $1F
+110 GTEXT 540, 9, "LEVENS:", $E0 : GTEXT 602, 9, STR$(L), $FF
+120 J = JOY : K = KEY
+130 IF (J &amp; 1) | (K = 119) | (K = 87) THEN IF Y &gt; 46 THEN Y = Y - 6
+140 IF (J &amp; 2) | (K = 115) | (K = 83) THEN IF Y &lt; 330 THEN Y = Y + 6
+150 IF (K = 81) | (K = 113) THEN GOTO 310
+160 FTRI 46, Y - 14, 46, Y + 14, 82, Y, $1F
+170 FTRI 34, Y - 6, 46, Y, 34, Y + 6, $FC
+180 DISK M, N, 16, $E0 : DISK M - 4, N - 4, 6, $FC
+190 DISK U, V, 13, $ED : DISK U - 3, V - 3, 5, $FF
+200 M = M - S : U = U - T
+210 IF M &lt; 24 THEN M = 620 : N = 45 + RND(275) : P = P + 10 : SOUND 0, 660, 140 : IF S &lt; 16 THEN S = S + 1
+220 IF U &lt; 24 THEN U = 620 : V = 45 + RND(275) : P = P + 10 : SOUND 0, 880, 140
+230 IF (M &gt; 36) &amp; (M &lt; 86) &amp; (ABS(N - Y) &lt; 24) THEN GOSUB 280
+240 IF (U &gt; 36) &amp; (U &lt; 86) &amp; (ABS(V - Y) &lt; 21) THEN GOSUB 280
+250 FLIP : WAIT 1 : SOUND 0, 0, 0
+260 IF L &gt; 0 THEN GOTO 70
+270 GOTO 310
+280 L = L - 1 : BEEP 150, 12 : M = 620 : U = 420 : RETURN
+310 WAV 0 : SOUND 0, 0, 0 : TARGET 1 : MODE 0 : CLEAR $E3 : CLS
+320 PRINT "GAME OVER! JOUW METEOREN-SCORE = "; P
+RUN</pre></div>
+
+      <h4 class="sub-title">6. 🎹 Interactief 16-Bit Stereo Toetsenbord-Orgel &amp; Instrumenten-Studio (<code>$A00A</code>)</h4>
+      <p>Maak van je pc- of PS/2-toetsenbord een echt <strong>16-Bit Stereo Synthesizer-Orgel</strong>! Speel melodieën met de toetsenrij <strong><code>A S D F G H J K</code></strong> (de hele toonladder van C4 t/m C5), wissel tijdens het spelen met cijfertoetsen <strong><code>0..8</code></strong> tussen alle 9 hardware-instrumenten (Piano, Kerkorgel, Strijkers, Gitaar, Trompet, Sub-Bas, Kerkklok, 8-Bit Chiptune &amp; Studio-Mix) en zet met <strong><code>Spatie</code></strong> een automatische drumbeat op Kanaal 3 aan of uit:</p>
+      <div class="code-wrapper"><button class="copy-btn" onclick="copyCode(this)">📋 Kopieer</button><pre>NEW
+10 REM === INTERACTIEF 16-BIT STEREO TOETSENBORD-ORGEL &amp; SYNTH STUDIO ===
+20 MODE 1 : TARGET 1 : CLEAR $01
+30 I = 0 : D = 1 : B = 0 : F = 262
+40 POKE $A00A, I : POKE $A00B, 7
+50 RECT 0, 0, 640, 30, $04
+60 GTEXT 14, 10, "16-BIT SYNTH ORGEL: [A S D F G H J K]=NOTEN  [0-8]=INSTRUMENT  [SPATIE]=DRUM  [Q]=STOP", $FC
+70 FOR N = 0 TO 7
+80   RECT 64 + N * 64, 90, 56, 170, $FF
+90   RECT 68 + N * 64, 230, 48, 24, $92
+100 NEXT N
+110 GTEXT 86, 205, "A", 0 : GTEXT 150, 205, "S", 0 : GTEXT 214, 205, "D", 0 : GTEXT 278, 205, "F", 0
+120 GTEXT 342, 205, "G", 0 : GTEXT 406, 205, "H", 0 : GTEXT 470, 205, "J", 0 : GTEXT 534, 205, "K", 0
+130 RECT 64, 285, 504, 42, $04
+140 GTEXT 80, 302, "INSTRUMENT ($A00A): 0=PIANO 1=ORGEL 2=STRIJK 3=GITAAR 4=TROMPET 8=MIX", $1F
+150 K = KEY : T = -1
+160 IF (K &gt;= 48) &amp; (K &lt;= 56) THEN I = K - 48 : POKE $A00A, I : BEEP 880, 3
+170 IF K = 32 THEN D = 1 - D
+180 IF (K = 65) | (K = 97)  THEN F = 262 : T = 0
+190 IF (K = 83) | (K = 115) THEN F = 294 : T = 1
+200 IF (K = 68) | (K = 100) THEN F = 330 : T = 2
+210 IF (K = 70) | (K = 102) THEN F = 349 : T = 3
+220 IF (K = 71) | (K = 103) THEN F = 392 : T = 4
+230 IF (K = 72) | (K = 104) THEN F = 440 : T = 5
+240 IF (K = 74) | (K = 106) THEN F = 494 : T = 6
+250 IF (K = 75) | (K = 107) THEN F = 523 : T = 7
+260 IF (K = 81) | (K = 113) THEN GOTO 340
+270 IF T &gt;= 0 THEN SOUND 0, F, 230 : SOUND 1, F / 2, 160 : RECT 68 + T * 64, 96, 48, 128, $FC
+280 IF D = 1 THEN B = (B + 1) &amp; 15
+290 IF (D = 1) &amp; (B = 0)  THEN SOUND 3, 90, 220
+300 IF (D = 1) &amp; (B = 4)  THEN SOUND 3, 900, 140
+310 IF (D = 1) &amp; (B = 8)  THEN SOUND 3, 280, 210
+320 IF (D = 1) &amp; (B = 12) THEN SOUND 3, 900, 140
+330 WAIT 3 : IF T &gt;= 0 THEN RECT 68 + T * 64, 96, 48, 128, $FF
+335 GOTO 150
+340 SOUND 0,0,0 : SOUND 1,0,0 : SOUND 3,0,0 : MODE 0 : CLEAR $E3 : CLS : PRINT "SYNTH ORGEL GESTOPT!"
+RUN</pre></div>
+
+      <h4 class="sub-title">7. 🌾🐓 Twentse Boerderij Ochtend-Dashboard met Live Klok (<code>$A007–$A009</code>) &amp; Dieren-Geluiden (<code>WAV 1..8</code>)</h4>
+      <p>Combineer de <strong>720p Twentse Boerderij-achtergrond (<code>POKE $A006, 3</code>)</strong> met de <strong>Hardware Real-Time Clock (<code>$A007–$A009</code>)</strong> en alle <strong>8 Boerderij- &amp; Vogelgeluiden op de MicroSD-kaart (<code>WAV 1..8</code>)</strong>! Druk op <strong><code>1..8</code></strong> om de dieren op het erf te horen en op <strong><code>B</code></strong> om tussen de Boerderij en 3D Space te wisselen:</p>
+      <div class="code-wrapper"><button class="copy-btn" onclick="copyCode(this)">📋 Kopieer</button><pre>NEW
+10 REM === TWENTSE BOERDERIJ DASHBOARD MET LIVE KLOK &amp; DIEREN-WAVS ===
+20 MODE 0 : POKE $A006, 3 : CLEAR $E3 : CLS
+30 WAV 2
+40 RECT 40, 248, 560, 96, $01 : RECT 43, 251, 554, 90, $04
+50 GTEXT 60, 260, "TWENTSE BOERDERIJ LIVE DASHBOARD  |  KLOK:", $FC
+60 GTEXT 60, 282, "[1]=Weide  [2]=Vogels  [3]=Haan     [4]=Twentse Koe", $FF
+70 GTEXT 60, 298, "[5]=Schapen [6]=Varken [7]=Boskoor  [8]=Dorpskerkklok", $FF
+80 GTEXT 60, 318, "[B]=Wissel Boerderij/Space   [0]=Stilte   [Q]=Stoppen", $1C
+90 H = PEEK($A007) : M = PEEK($A008) : S = PEEK($A009)
+100 RECT 415, 257, 165, 16, $01
+110 GTEXT 425, 260, STR$(H), $1F : GTEXT 449, 260, ":", $FC
+120 GTEXT 465, 260, STR$(M), $1F : GTEXT 489, 260, ":", $FC
+130 GTEXT 505, 260, STR$(S), $FC
+140 K = KEY
+150 IF (K &gt;= 49) &amp; (K &lt;= 56) THEN WAV K - 48
+160 IF K = 48 THEN WAV 0
+170 IF (K = 66) | (K = 98) THEN POKE $A006, 6 : BEEP 660, 4
+180 IF (K = 81) | (K = 113) THEN GOTO 200
+190 WAIT 8 : GOTO 90
+200 WAV 0 : CLEAR $E3 : CLS : PRINT "TOT ZIENS OP DE BOERDERIJ!"
+RUN</pre></div>
+
+      <h4 class="sub-title">8. 🧱 Speelbare "Twente Breakout / Muur-Kraker" met Kleurrijke Stenen &amp; Bal-Fysica</h4>
+      <p>Een compleet speelbaar <strong>Breakout-arcadespel</strong> in minder dan 40 regels BASIC! Beweeg je plankje onderin met <strong><code>A</code> / <code>D</code></strong> (of <strong><code>Pijl Links</code> / <code>Rechts</code></strong>) en kaats de bal tegen de 16 gekleurde bakstenen:</p>
+      <div class="code-wrapper"><button class="copy-btn" onclick="copyCode(this)">📋 Kopieer</button><pre>NEW
+10 REM === TWENTE BREAKOUT / MUUR-KRAKER IN MINIGPU-BASIC ===
+20 MODE 1 : TARGET 0 : POKE $A00A, 0 : POKE $A00B, 3
+30 FOR I = 0 TO 15 : A(I) = 1 : NEXT I
+40 P = 280 : X = 320 : Y = 260 : U = 5 : V = -5 : S = 0 : R = 16
+50 CLEAR $01
+60 RECT 0, 0, 640, 24, $04
+70 GTEXT 16, 8, "TWENTE BREAKOUT!  [A/D OF PIJL]=PLANKJE   [Q]=STOP   SCORE:", $FC
+80 GTEXT 500, 8, STR$(S), $1F
+90 FOR I = 0 TO 7
+100  IF A(I) = 1 THEN RECT 28 + I * 74, 48, 66, 18, $E0
+110  IF A(I + 8) = 1 THEN RECT 28 + I * 74, 74, 66, 18, $FC
+120 NEXT I
+130 J = JOY : K = KEY
+140 IF (J &amp; 4) | (K = 97)  | (K = 65) THEN IF P &gt; 16 THEN P = P - 12
+150 IF (J &amp; 8) | (K = 100) | (K = 68) THEN IF P &lt; 536 THEN P = P + 12
+160 IF (K = 81) | (K = 113) THEN GOTO 320
+170 RECT P, 332, 88, 12, $1F
+180 DISK X, Y, 7, $FF
+190 X = X + U : Y = Y + V
+200 IF (X &lt; 14) | (X &gt; 626) THEN U = -U : BEEP 520, 2
+210 IF Y &lt; 34 THEN V = -V : BEEP 640, 2
+220 IF (Y &gt;= 322) &amp; (Y &lt;= 338) &amp; (X &gt;= P - 6) &amp; (X &lt;= P + 94) THEN V = -5 : U = ((X - (P + 44)) / 6) : IF U = 0 THEN U = 3
+230 IF (Y &gt;= 322) &amp; (Y &lt;= 338) &amp; (X &gt;= P - 6) &amp; (X &lt;= P + 94) THEN BEEP 440, 2
+240 IF (Y &gt;= 44) &amp; (Y &lt;= 68) THEN I = (X - 28) / 74 : IF (I &gt;= 0) &amp; (I &lt;= 7) THEN IF A(I) = 1 THEN A(I) = 0 : V = -V : S = S + 25 : R = R - 1 : BEEP 880, 3
+250 IF (Y &gt;= 70) &amp; (Y &lt;= 94) THEN I = (X - 28) / 74 : IF (I &gt;= 0) &amp; (I &lt;= 7) THEN IF A(I+8) = 1 THEN A(I+8) = 0 : V = -V : S = S + 15 : R = R - 1 : BEEP 740, 3
+260 FLIP : WAIT 1
+270 IF R = 0 THEN GOTO 300
+280 IF Y &lt; 354 THEN GOTO 50
+290 BEEP 180, 20 : TARGET 1 : MODE 0 : CLEAR $E3 : CLS : PRINT "BAL GEMIST! EINDSCORE = "; S : END
+300 BEEP 523, 8 : BEEP 659, 8 : BEEP 784, 15 : TARGET 1 : MODE 0 : CLEAR $E3 : CLS : PRINT "GEWONNEN! ALLE STENEN WEG! SCORE = "; S : END
+320 TARGET 1 : MODE 0 : CLEAR $E3 : CLS : PRINT "BREAKOUT GESTOPT. SCORE = "; S
+RUN</pre></div>
+
+      <h4 class="sub-title">9. 🪐 3D Warp-Speed Sterrenveld &amp; Planeten-Vlucht met NASA Space-Audio (<code>WAV 16, 1, 1</code>)</h4>
+      <p>Vlieg met 60 FPS door een 3D-sterrenstelsel met een groeiende ringplaneet terwijl de Audio Hulp-CPU op de achtergrond <strong><code>WAV 16, 1, 1</code> (<em>NASA Apollo Space Radio</em>)</strong> afspeelt! Stuur je kijkrichting met <strong><code>W/A/S/D</code></strong> of de pijltjestoetsen:</p>
+      <div class="code-wrapper"><button class="copy-btn" onclick="copyCode(this)">📋 Kopieer</button><pre>NEW
+10 REM === 3D WARP-SPEED STERRENVELD + NASA SPACE RADIO OP HULP-CPU ===
+20 WAV 16, 1, 1
+30 MODE 1 : TARGET 0
+40 FOR I = 0 TO 23 : X(I) = RND(600) - 300 : Y(I) = RND(320) - 160 : Z(I) = RND(12) + 2 : NEXT I
+50 C = 320 : D = 180 : R = 14
+60 CLEAR $00
+70 J = JOY : K = KEY
+80 IF (J &amp; 4) | (K = 97)  THEN C = C - 6
+90 IF (J &amp; 8) | (K = 100) THEN C = C + 6
+100 IF (J &amp; 1) | (K = 119) THEN D = D - 4
+110 IF (J &amp; 2) | (K = 115) THEN D = D + 4
+120 IF (K = 81) | (K = 113) THEN GOTO 250
+130 FOR I = 0 TO 23
+140   Z(I) = Z(I) - 1
+150   IF Z(I) &lt; 1 THEN X(I) = RND(600) - 300 : Y(I) = RND(320) - 160 : Z(I) = 14
+160   U = C + (X(I) * 8) / Z(I)
+170   V = D + (Y(I) * 8) / Z(I)
+180   S = 1 : IF Z(I) &lt; 6 THEN S = 2
+190   IF (U &gt; 4) &amp; (U &lt; 635) &amp; (V &gt; 24) &amp; (V &lt; 355) THEN DISK U, V, S, $FF
+200 NEXT I
+210 R = R + 1 : IF R &gt; 68 THEN R = 12
+220 DISK C, D, R / 2, $1F : CIRCLE C, D, R, $FC
+230 RECT 0, 0, 640, 22, $04
+235 GTEXT 14, 7, "3D WARP-SPEED + SPACE RADIO (WAV 16,1,1) | [WASD/PIJL]=STUUR [Q]=STOP", $FC
+240 FLIP : WAIT 1 : GOTO 60
+250 WAV 0 : TARGET 1 : MODE 0 : CLEAR $E3 : CLS : PRINT "WARP-VLUCHT VOLTOOID!"
+RUN</pre></div>
+
+      <h4 class="sub-title">10. 🌈 Kaleidoscoop &amp; Harmonische Cirkel-Kunst Studio (met Wisselende Patronen!)</h4>
+      <p>Dit programma tekent een vierdubbel gespiegelde <strong>symmetrische kaleidoscoop</strong> op het 640×360 scherm. Druk op <strong><code>Spatie</code></strong> om het scherm te wissen voor een nieuw kristalpatroon of op <strong><code>Q</code></strong> om te stoppen:</p>
+      <div class="code-wrapper"><button class="copy-btn" onclick="copyCode(this)">📋 Kopieer</button><pre>NEW
+10 REM === 4-VOUDIGE SYMMETRISCHE KALEIDOSCOOP KUNST STUDIO ===
+20 MODE 1 : TARGET 1 : CLEAR $00
+30 RECT 0, 0, 640, 22, $04
+40 GTEXT 16, 7, "KALEIDOSCOOP STUDIO  |  [SPATIE]=NIEUW KRISTAL   [Q]=STOPPEN", $FC
+50 X = 160 : Y = 100 : U = 7 : V = 5 : T = 0
+60 T = T + 1 : X = X + U : Y = Y + V
+70 IF (X &lt; 20) | (X &gt; 300) THEN U = -U
+80 IF (Y &lt; 34) | (Y &gt; 170) THEN V = -V
+90 R = 4 + (T &amp; 15)
+100 C = RGB((T / 2) &amp; 7, (T / 5) &amp; 7, 1 + (T &amp; 2))
+110 IF C = $E3 THEN C = $FC
+120 DISK 320 + X, 190 + Y, R, C
+130 DISK 320 - X, 190 + Y, R, C
+140 DISK 320 + X, 190 - Y, R, C
+150 DISK 320 - X, 190 - Y, R, C
+160 K = KEY
+170 IF K = 32 THEN RECT 0, 22, 640, 338, $00 : BEEP 660, 4
+180 IF (K = 81) | (K = 113) THEN MODE 0 : CLEAR $E3 : CLS : PRINT "KALEIDOSCOOP KLAAR!" : END
+190 WAIT 1 : GOTO 60
 RUN</pre></div>
 
       <!-- DEEL VII -->
@@ -2449,22 +2676,22 @@ RUN</pre></div>
       </ul>
       <div class="code-card"><pre>SD : DRIVE 0 : BRUN "MUIS"</pre></div>
 
-      <h4 class="sub-title" id="h16_wav">18. 🎧🎵 <code>MP3PLAY.asm</code> / <code>WAVPLAY.asm</code> — MP3Commander 2.0: Midnight-Commander Dual-Pane <code>.MP3</code> &amp; <code>.WAV</code> Speler (<code>SD : DRIVE 0 : BRUN "MP3PLAY"</code>)</h4>
-      <p>Op <strong>Drive 0 (<code>D0</code>)</strong>, <strong>Drive 1 (<code>D1</code>)</strong> en <strong>Drive 2 (<code>D2</code>)</strong> staat het 6502-machinecodeprogramma <strong><code>MP3PLAY</code></strong> (én gekoppeld als <strong><code>WAVPLAY</code></strong>, <code>sdcard/MP3PLAY.asm</code>, <code>4081 bytes</code> op <code>$8000</code>, zodat je hem zowel met <code>BRUN "MP3PLAY"</code> als vanuit Midnight Commander <code>BRUN "MC"</code> kunt starten!). Dit programma heeft precies zo'n <strong>Midnight-Commander Dual-Pane keuzelijst</strong> als <code>MC</code> waarmee je door <strong>8 echte <code>.MP3</code>-liedjes (links)</strong> én <strong>16 digitale <code>.WAV</code>-geluiden (rechts)</strong> bladert en ze afspeelt via de <strong>Hardware Audio Hulp-CPU (<code>$A018–$A01B</code>)</strong>!</p>
+      <h4 class="sub-title" id="h16_wav">18. 🎧🎵 <code>MP3PLAY.asm</code> / <code>WAVPLAY.asm</code> — MP3Commander 2.1: Midnight-Commander Dual-Pane <code>.MP3</code> &amp; <code>.WAV</code> Speler (<code>SD : DRIVE 0 : BRUN "MP3PLAY"</code>)</h4>
+      <p>Op <strong>Drive 0 (<code>D0</code>)</strong>, <strong>Drive 1 (<code>D1</code>)</strong> en <strong>Drive 2 (<code>D2</code>)</strong> staat het 6502-machinecodeprogramma <strong><code>MP3PLAY</code></strong> (én gekoppeld als <strong><code>WAVPLAY</code></strong>, <code>sdcard/MP3PLAY.asm</code>, <code>3929 bytes</code> op <code>$8000</code>, zodat je hem zowel met <code>BRUN "MP3PLAY"</code> als vanuit Midnight Commander <code>BRUN "MC"</code> kunt starten!). Dit programma heeft precies zo'n <strong>Midnight-Commander Dual-Pane keuzelijst</strong> als <code>MC</code> waarmee je door <strong>8 lange/complete <code>.MP3</code>-liedjes (links, tot 2 min 11 sec / 1.024 KB per nummer!)</strong> én <strong>16 digitale <code>.WAV</code>-geluiden (rechts)</strong> bladert en ze afspeelt via de <strong>Hardware Audio Hulp-CPU (<code>$A018–$A01B</code>)</strong>!</p>
       <ul>
-        <li><strong>📂 Linker Paneel — 8 Echte <code>.MP3</code> Liedjes (Sector <code>$2001</code> &amp; <code>$2410–$290F</code>, gecachet in SDRAM Banken <code>44..59</code>):</strong>
+        <li><strong>📂 Linker Paneel — 8 Lange / Complete <code>.MP3</code> Liedjes (Directory op Sector <code>$2001</code> &amp; Audio op <code>$3000–$AFFF</code>, gecachet in SDRAM Banken <code>20..35</code> = tot 16 Banken / 1.024 KB per liedje!):</strong>
           <ul>
-            <li><strong><code>1.OUTFOXING.MP3</code></strong> (<code>$2410</code>, 128 KB / 512 pag. = <strong>16,4 sec</strong>) — <em>Kevin MacLeod: Outfoxing the Fox</em></li>
-            <li><strong><code>2.CALIF DREM.MP</code></strong> (<code>$2510</code>, 128 KB / 512 pag. = <strong>16,4 sec</strong>) — <em>The Mamas &amp; the Papas: California Dreamin'</em></li>
-            <li><strong><code>3.MONDAY MON.MP</code></strong> (<code>$2610</code>, 64 KB / 256 pag. = <strong>8,2 sec</strong>) — <em>The Mamas &amp; the Papas: Monday, Monday</em></li>
-            <li><strong><code>4.DEDICATED.MP3</code></strong> (<code>$2690</code>, 64 KB / 256 pag. = <strong>8,2 sec</strong>) — <em>The Mamas &amp; the Papas: Dedicated To The One I Love</em></li>
-            <li><strong><code>5.DANCING ST.MP</code></strong> (<code>$2710</code>, 64 KB / 256 pag. = <strong>8,2 sec</strong>) — <em>The Mamas &amp; the Papas: Dancing In The Street</em></li>
-            <li><strong><code>6.SPAN HARLM.MP</code></strong> (<code>$2790</code>, 64 KB / 256 pag. = <strong>8,2 sec</strong>) — <em>The Mamas &amp; the Papas: Spanish Harlem</em></li>
-            <li><strong><code>7.TWIST SHT.MP3</code></strong> (<code>$2810</code>, 64 KB / 256 pag. = <strong>8,2 sec</strong>) — <em>The Mamas &amp; the Papas: Twist And Shout</em></li>
-            <li><strong><code>8.CALL NAME.MP3</code></strong> (<code>$2890</code>, 64 KB / 256 pag. = <strong>8,2 sec</strong>) — <em>The Mamas &amp; the Papas: I Call Your Name</em></li>
+            <li><strong><code>1.OUTFOXING.MP3</code></strong> (<code>$3000</code>, 5 banken = 320 KB / 1.280 pag. = <strong>00:41 MP3</strong>) — <em>Kevin MacLeod: Outfoxing the Fox</em></li>
+            <li><strong><code>2.CALIF DREM.MP</code></strong> (<code>$4000</code>, 16 banken = 1.024 KB / 4.096 pag. = <strong>02:11 MP3</strong>) — <em>The Mamas &amp; the Papas: California Dreamin' (Compleet!)</em></li>
+            <li><strong><code>3.MONDAY MON.MP</code></strong> (<code>$5000</code>, 10 banken = 640 KB / 2.560 pag. = <strong>01:22 MP3</strong>) — <em>The Mamas &amp; the Papas: Monday, Monday</em></li>
+            <li><strong><code>4.DEDICATED.MP3</code></strong> (<code>$6000</code>, 10 banken = 640 KB / 2.560 pag. = <strong>01:22 MP3</strong>) — <em>The Mamas &amp; the Papas: Dedicated To The One I Love</em></li>
+            <li><strong><code>5.DANCING ST.MP</code></strong> (<code>$7000</code>, 10 banken = 640 KB / 2.560 pag. = <strong>01:22 MP3</strong>) — <em>The Mamas &amp; the Papas: Do You Wanna Dance</em></li>
+            <li><strong><code>6.SPAN HARLM.MP</code></strong> (<code>$8000</code>, 10 banken = 640 KB / 2.560 pag. = <strong>01:22 MP3</strong>) — <em>The Mamas &amp; the Papas: Spanish Harlem</em></li>
+            <li><strong><code>7.TWIST SHT.MP3</code></strong> (<code>$9000</code>, 10 banken = 640 KB / 2.560 pag. = <strong>01:22 MP3</strong>) — <em>The Mamas &amp; the Papas: Twist And Shout</em></li>
+            <li><strong><code>8.CALL NAME.MP3</code></strong> (<code>$A000</code>, 10 banken = 640 KB / 2.560 pag. = <strong>01:22 MP3</strong>) — <em>The Mamas &amp; the Papas: I Call Your Name</em></li>
           </ul>
         </li>
-        <li><strong>📂 Rechter Paneel — 16 Digitale <code>.WAV</code> Geluiden op Pagina 1/2 &amp; 2/2 (Sector <code>$2000</code> &amp; <code>$2010–$240F</code>, SDRAM Banken <code>28..43</code>):</strong>
+        <li><strong>📂 Rechter Paneel — 16 Digitale <code>.WAV</code> Geluiden op Pagina 1/2 &amp; 2/2 (Sector <code>$2000</code> &amp; <code>$2010–$240F</code>, SDRAM Banken <code>36..51</code>):</strong>
           <ul>
             <li><strong>Pagina 1/2 (<code>#1..#8</code>):</strong> <code>1.BOERDERIJ WEI</code>, <code>2.OCHTENDVOGELS</code>, <code>3.KRAAIENDE HN</code>, <code>4.TWENTSE KOE</code>, <code>5.SCHAPENKUDDE</code>, <code>6.VARKEN &amp; KIP</code>, <code>7.BOSVOGEL KOOR</code>, <code>8.DORPSKERK KLK</code>.</li>
             <li><strong>Pagina 2/2 (<code>#9..#16</code>, wissel met toets <code>P</code>):</strong> <code>1.VROEGE MEREL</code>, <code>2.BOERENERF MIX</code>, <code>3.TANG NANO STM</code>, <code>4.FUNK DRUMBEAT</code>, <code>5.WINDOWS TADA!</code>, <code>6.CYBER ACID BS</code>, <code>7.STUDIO CHIMES</code>, <code>8.SPACE RADIO</code>.</li>
@@ -3103,14 +3330,14 @@ RUN</pre></div>
       </script>
 
       <h4 class="sub-title">💻 De PC <code>.WAV</code> &amp; <code>.MP3</code> Studio GUI (<code>wav_gui.py</code> / <code>start_wav_gui.bat</code>)</h4>
-      <p>Wil je je eigen <strong><code>.WAV</code>- óf <code>.MP3</code>-bestanden</strong> vanaf je pc beluisteren, bijknippen en in een van de 16 slots op de MicroSD-kaart zetten — of een <strong>lang <code>.MP3</code>-liedje (16 seconden aan één stuk = 128 KB)</strong> rechtstreeks naar de Audio Hulp-CPU streamen? Dubbelklik in je map op <strong><code>start_wav_gui.bat</code></strong> (of klik in <code>basic_terminal.py</code> op de paarse knop <strong>🎵 WAV Studio GUI</strong>):</p>
+      <p>Wil je je eigen <strong><code>.WAV</code>- óf complete <code>.MP3</code>-bestanden (tot 2 min 11 sec / 1.024 KB per nummer!)</strong> vanaf je pc beluisteren, omzetten en op de MicroSD-kaart zetten — of rechtstreeks naar de Audio Hulp-CPU streamen? Dubbelklik in je map op <strong><code>start_wav_gui.bat</code></strong> (of klik in <code>basic_terminal.py</code> op de paarse knop <strong>🎵 WAV Studio GUI</strong>):</p>
       <ul>
-        <li><strong>Directe <code>.MP3</code> &amp; <code>.WAV</code> Decoder:</strong> Gebruikt de ingebouwde Windows ACM MP3-codec (<code>msacm32.dll</code>) om elk <code>.MP3</code>-bestand (zoals <code>wav_tracks/outfoxing_song.mp3</code>) in minder dan 0,1 seconde om te zetten naar 8-bit unsigned mono PCM met automatische peak-normalisatie.</li>
-        <li><strong>Golfvorm-Oscilloscoop &amp; Startpunt-Slider:</strong> Kies met de schuifbalk onder de golfvorm precies welk fragment van 4,1 seconden je uit een lang <code>.MP3</code>-liedje wilt knippen voor Slot <code>#1..#16</code> op je MicroSD-kaart (daarna speel je dat <code>.MP3</code>-fragment in BASIC gewoon af met <code>WAV 1..16</code>!).</li>
-        <li><strong>🎶 Stream Lang MP3-Liedje (16s) naar Hulp-CPU (SDRAM Bank 60..61):</strong> Vult twee volledige 64 KB SDRAM-banken achter elkaar (<code>128 KB</code> = <code>512</code> pagina's) en start de Audio Hulp-CPU met <code>POKE $A018,60 : POKE $A019,0 : POKE $A01A,2 : POKE $A01B,1</code> zodat de Tang Nano 20K 16,4 seconden onafgebroken MP3-muziek speelt! Bovendien staat <code>outfoxing_song.mp3</code> (16,4s = 128 KB) óók vast op je MicroSD-kaart op <strong>Sector <code>$2410–$250F</code></strong> zodat je hem met <strong>Voorbeeld 6</strong> hieronder altijd direct vanuit BASIC kunt afspelen!</li>
+        <li><strong>Directe <code>.MP3</code> &amp; <code>.WAV</code> Decoder:</strong> Gebruikt de ingebouwde Windows ACM MP3-codec (<code>msacm32.dll</code>) om elk <code>.MP3</code>-bestand in een fractie van een seconde om te zetten naar 8-bit unsigned mono PCM met automatische peak-normalisatie.</li>
+        <li><strong>Golfvorm-Oscilloscoop &amp; Startpunt-Slider:</strong> Kies met de schuifbalk onder de golfvorm precies welk fragment je wilt gebruiken voor de 16 korte <code>.WAV</code>-slots (<code>#1..#16</code> op Sector <code>$2010–$240F</code>, af te spelen met <code>WAV 1..16</code>) óf zet <strong>complete <code>.MP3</code>-nummers tot 16 SDRAM-banken (<code>1.024 KB</code> = 2 min 11 sec per liedje!)</strong> in de 8 <code>.MP3</code>-slots (<code>#1..#8</code> op Sector <code>$3000–$AFFF</code>, directory in Sector <code>$2001</code>)!</li>
+        <li><strong>🎶 Stream Lang MP3-Liedje naar Hulp-CPU (SDRAM Banken 20..35 of 60..61):</strong> Vult meerdere 64 KB SDRAM-banken achter elkaar en start de Audio Hulp-CPU met <code>POKE $A018,bank : POKE $A019,0 : POKE $A01A,banken : POKE $A01B,129</code> zodat de Tang Nano 20K minutenlang onafgebroken MP3-muziek speelt met <code>0%</code> 6502 CPU-belasting!</li>
       </ul>
 
-      <h4 class="sub-title">🧪 6 Kant-en-Klare BASIC Voorbeelden met <code>.WAV</code>, <code>.MP3</code> &amp; de Audio Hulp-CPU</h4>
+      <h4 class="sub-title">🧪 9 Kant-en-Klare BASIC Voorbeelden met <code>.WAV</code>, <code>.MP3</code> &amp; de Audio Hulp-CPU</h4>
 
       <p><strong>Voorbeeld 1 — Lijst van alle 16 MicroSD <code>.WAV</code>-bestanden tonen &amp; Ochtendvogels op de achtergrond starten:</strong></p>
       <div class="code-card"><pre>10 REM === TOON ALLE 16 SD-KAART WAV-BESTANDEN &amp; SPEEL OCHTENDVOGELS ===
@@ -3278,6 +3505,80 @@ RUN</pre></div>
 305 WAIT 4 : GOTO 180
 310 WAV 0 : CLEAR $E3 : CLS : PRINT "MP3 SPELER GESTOPT!"
 RUN</pre></div>
+
+      <p><strong>Voorbeeld 7 — 📂 MicroSD <code>.MP3</code> Catalogus-Lezer in BASIC (leest Sector <code>$2001</code> en toont alle 8 lange <code>.MP3</code>-nummers!):</strong><br>
+      Wist je dat je vanuit BASIC rechtstreeks elke sector van de MicroSD-kaart in het interne geheugen kunt lezen met de ingebouwde ROM-routine <code>CALL $EA67</code>? De 8 lange <code>.MP3</code>-liedjes hebben hun eigen directory-tabel op <strong>MicroSD Sector <code>$2001</code></strong> (8 regels van 32 bytes: bytes <code>0..13</code> = bestandsnaam, byte <code>15</code> = aantal 64 KB SDRAM-banken, bytes <code>16..17</code> = startsector <code>$3000..$A000</code>). Onderstaand BASIC-programma leest Sector <code>$2001</code> in buffer <code>$2800</code> en toont van alle 8 <code>.MP3</code>-nummers de grootte in KB en de afspeelduur in seconden:</p>
+      <div class="code-card"><pre>10 REM === VOORBEELD 7: LEES DE MICROSD .MP3 DIRECTORY (SECTOR $2001) IN BASIC ===
+20 MODE 0 : POKE $A006, 3 : CLEAR $E3 : CLS
+30 PRINT "=== MICROSD .MP3 ALBUM CATALOGUS (SECTOR $2001 -> RAM $2800) ==="
+40 POKE $0491, 0 : POKE $0492, 0 : CALL $E96A
+50 POKE $0496, 1 : POKE $0497, $20
+60 POKE $1C, 0 : POKE $1D, $28 : CALL $EA67
+70 FOR S = 0 TO 7
+80   A = $2800 + S * 32
+90   B = PEEK(A + 15)
+100  H = PEEK(A + 17)
+110  K = B * 64 : T = B * 8
+120  PRINT "TRACK #"; S + 1; " | SECTOR $"; H * 256; " | "; B; " BANKEN ("; K; " KB = ~"; T; " SEC)"
+130 NEXT S
+140 PRINT "----------------------------------------------------------------"
+150 PRINT "TIP: START VOORBEELD 8 OF 9 OM DEZE 8 LANGE MP3'S AF TE SPELEN!"
+RUN</pre></div>
+
+      <p><strong>Voorbeeld 8 — 🎸 Kies &amp; Stream Elk van de 8 Lange <code>.MP3</code>-Songs (<code>#1..#8</code> op Sector <code>$3000..$A000</code>) vanuit BASIC met Echte Live Sample-Equalizer (<code>PEEK($A016)</code>):</strong><br>
+      Met dit programma kies je tijdens het draaien met toets <strong><code>1..8</code></strong> welk van de 8 lange <code>.MP3</code>-liedjes op de MicroSD-kaart je wilt beluisteren (<code>1</code> = <em>Outfoxing the Fox</em>, <code>2</code> = <em>California Dreamin'</em>, <code>3</code> = <em>Monday Monday</em>, <code>4</code> = <em>Dedicated To The One I Love</em>, <code>5</code> = <em>Do You Wanna Dance</em>, <code>6</code> = <em>Spanish Harlem</em>, <code>7</code> = <em>Twist And Shout</em>, <code>8</code> = <em>I Call Your Name</em>). De snelle 81-byte 6502 loader op <code>$2E00</code> laadt 5 SDRAM-banken (<code>320 KB</code> = <strong>41 seconden onafgebroken <code>.MP3</code>-muziek!</strong> — of pas <code>B = 5</code> op regel 35 aan naar <code>B = 10</code> of <code>16</code> voor het volledige nummer van 2 min 11 sec!) in SDRAM Bank <code>20..24</code> en tekent een <strong>16-bands equalizer die live meebeweegt op de echte 8-bit audiosamples uit <code>PEEK($A016)</code></strong>:</p>
+      <div class="code-card"><pre>10 REM === VOORBEELD 8: 8-TRACK LANGE MP3 SPELER ($3000-$A000) + LIVE $A016 EQUALIZER ===
+20 MODE 1 : TARGET 1 : CLEAR $01
+30 POKE $2E00,$A9:POKE $2E01,$00:POKE $2E02,$8D:POKE $2E03,$1B:POKE $2E04,$A0:POKE $2E05,$8D
+32 POKE $2E06,$91:POKE $2E07,$04:POKE $2E08,$8D:POKE $2E09,$92:POKE $2E0A,$04:POKE $2E0B,$85
+34 POKE $2E0C,$60:POKE $2E0D,$20:POKE $2E0E,$6A:POKE $2E0F,$E9:POKE $2E10,$A5:POKE $2E11,$62
+36 POKE $2E12,$8D:POKE $2E13,$15:POKE $2E14,$A0:POKE $2E15,$A9:POKE $2E16,$00:POKE $2E17,$85
+38 POKE $2E18,$1C:POKE $2E19,$A9:POKE $2E1A,$06:POKE $2E1B,$85:POKE $2E1C,$1D:POKE $2E1D,$20
+40 POKE $2E1E,$67:POKE $2E1F,$EA:POKE $2E20,$A5:POKE $2E21,$60:POKE $2E22,$8D:POKE $2E23,$13
+42 POKE $2E24,$A0:POKE $2E25,$A0:POKE $2E26,$00:POKE $2E27,$8C:POKE $2E28,$12:POKE $2E29,$A0
+44 POKE $2E2A,$B9:POKE $2E2B,$00:POKE $2E2C,$06:POKE $2E2D,$8D:POKE $2E2E,$14:POKE $2E2F,$A0
+46 POKE $2E30,$C8:POKE $2E31,$D0:POKE $2E32,$F4:POKE $2E33,$E6:POKE $2E34,$60:POKE $2E35,$A5
+48 POKE $2E36,$60:POKE $2E37,$8D:POKE $2E38,$13:POKE $2E39,$A0:POKE $2E3A,$8C:POKE $2E3B,$12
+50 POKE $2E3C,$A0:POKE $2E3D,$B9:POKE $2E3E,$00:POKE $2E3F,$07:POKE $2E40,$8D:POKE $2E41,$14
+52 POKE $2E42,$A0:POKE $2E43,$C8:POKE $2E44,$D0:POKE $2E45,$F4:POKE $2E46,$E6:POKE $2E47,$60
+54 POKE $2E48,$D0:POKE $2E49,$CB:POKE $2E4A,$E6:POKE $2E4B,$62:POKE $2E4C,$C6:POKE $2E4D,$61
+56 POKE $2E4E,$D0:POKE $2E4F,$C0:POKE $2E50,$60
+60 S = 2 : B = 5 : GOSUB 260
+70 K = KEY
+80 IF (K &gt;= 49) &amp; (K &lt;= 56) THEN S = K - 48 : GOSUB 260
+90 IF (K = 80) | (K = 112) THEN R = (R &amp; 3) + 1 : POKE $A018,20:POKE $A019,0:POKE $A01A,B:POKE $A01B,R+128
+100 IF (K = 81) | (K = 113) | (K = 32) THEN GOTO 240
+110 FOR I = 0 TO 15
+120   V = ABS(PEEK($A016) - 128) * 2
+130   H = 10 + V + ((I * 17 + PEEK($A019) * 3) &amp; 47)
+140   IF H &gt; 176 THEN H = 176
+150   X = 48 + I * 34
+160   RECT X, 96, 26, 180 - H, $00
+170   C = $1C : IF H &gt; 90 THEN C = $FC
+180   IF H &gt; 138 THEN C = $E0
+190   RECT X, 276 - H, 26, H, C
+200   RECT X, 272 - H, 26, 4, $FF
+210 NEXT I
+220 P = (B * 256) - (PEEK($A01A) * 256 + PEEK($A019)) : IF P &lt; 0 THEN P = 0
+230 W = (P * 2) / B + 4 : RECT 48, 304, 536, 12, $00 : RECT 48, 304, W, 12, $1F
+235 GOTO 70
+240 WAV 0 : MODE 0 : CLEAR $E3 : CLS : PRINT "MP3 JUKEBOX AFGESLOTEN!" : END
+260 RECT 0, 0, 640, 82, $04 : RECT 36, 88, 568, 244, $00
+270 GTEXT 16, 10, "BASIC 8-TRACK LANGE MP3 SPELER (SECTOR $3000-$A000 -> SDRAM BANK 20..24)", $FC
+280 GTEXT 16, 28, "[1] Outfoxing  [2] Calif.Dreamin  [3] Monday Monday  [4] Dedicated", $FF
+290 GTEXT 16, 44, "[5] Do You...  [6] Spanish Harlem [7] Twist &amp; Shout  [8] Call Name", $FF
+300 GTEXT 16, 62, "LADEN VAN MP3 TRACK #", $1F : GTEXT 192, 62, STR$(S), $FC : GTEXT 224, 62, "(320 KB = 41 SEC)... EVEN GEDULD!", $1C
+310 POKE $0496, 0 : POKE $0497, $20 + S * 16 : POKE $61, B : POKE $62, 20 : CALL $2E00
+320 R = 1 : POKE $A018, 20 : POKE $A019, 0 : POKE $A01A, B : POKE $A01B, 129
+330 RECT 16, 60, 608, 16, $04
+340 GTEXT 16, 62, "SPEELT NU TRACK #", $1C : GTEXT 160, 62, STR$(S), $FC : GTEXT 192, 62, "| [1-8]=KIES TRACK  [P]=PITCH  [SPATIE/Q]=STOP", $FF
+350 RETURN
+RUN</pre></div>
+
+      <p><strong>Voorbeeld 9 — 🎧 Start de Volledige Dual-Pane <code>MP3Commander 2.1</code> (<code>BRUN "MP3PLAY"</code>) &amp; Gebruik Achtergrond-MP3 (<code>Toets B</code>) in BASIC:</strong><br>
+      Wil je alle 8 complete <code>.MP3</code>-liedjes (inclusief de volledige <strong>2:11 <em>California Dreamin'</em></strong> van 1.024 KB!) én alle 16 <code>.WAV</code>-geluiden bedienen met een echte Midnight-Commander interface, muisondersteuning en Auto-DJ Album-Loop? Klik dan hieronder op <strong>▶️ Test direct!</strong> om <code>MP3PLAY</code> te starten.<br>
+      💡 <strong>Super-Tip (Toets <code>B</code> in <code>MP3PLAY</code>):</strong> Als je in <code>MP3PLAY</code> een lang <code>.MP3</code>-liedje start en daarna op toets <strong><code>B</code> (Background Play &amp; Exit)</strong> drukt, sluit <code>MP3PLAY</code> af terug naar de <code>&gt;</code> BASIC-prompt terwijl de <strong>Hardware Audio Hulp-CPU het complete <code>.MP3</code>-liedje van 2 minuten op de achtergrond blijft doorspelen!</strong> Je kunt daarna elk BASIC-programma of spel (zoals <code>DEMO 3</code> of de 10 Mini-Programma's uit Hoofdstuk 15) draaien met jouw gekozen <code>.MP3</code> als soundtrack!</p>
+      <div class="code-card"><pre>SD : DRIVE 0 : BRUN "MP3PLAY"</pre></div>
 
       <h4 class="sub-title">3. 📂 Bestanden Openen, Schrijven &amp; Lezen op de SD-Kaart (<code>OPEN</code>, <code>WRITE</code>, <code>READ</code>, <code>CLOSE</code>, <code>TYPE</code>)</h4>
       <p>Je kunt vanuit BASIC nu rechtstreeks tekst- en databestanden op de MicroSD-kaart (<code>D0..D3</code>) of SDRAM-Disk (<code>R0..R3</code>) openen, lezen, aanvullen en bewaren! Het geopende bestand staat tijdens het bewerken automatisch in de 4 KB bestandsbuffer op <strong><code>$6000–$6FFF</code></strong> (en is dus ook direct te lezen in <code>BRUN "READER"</code> en via FTP!):</p>
@@ -3474,7 +3775,7 @@ RUN</pre></div>
           <tr><td><code>POKE $A00A, inst</code></td><td><code>POKE $A00A, 0</code> of <code>POKE $A00A, 8</code></td><td>16-Bit Instrument: <code>0</code>=Piano, <code>1</code>=Kerkorgel, <code>2</code>=Strijkers, <code>3</code>=Gitaar, <code>4</code>=Trompet, <code>5</code>=Sub-Bas, <code>6</code>=Kerkklok, <code>7</code>=8-Bit, <code>8</code>=Studio-Mix</td></tr>
           <tr><td><code>POKE $A00B, fx</code></td><td><code>POKE $A00B, 7</code></td><td>Studio-Effecten: Bit 0 (<code>1</code>)=Auto-ADSR, Bit 1 (<code>2</code>)=Warm Low-Pass Filter, Bit 2 (<code>4</code>)=Stereo-Chorus, Bit 3 (<code>8</code>)=Extra Vibrato</td></tr>
           <tr><td><code>WAV [1..16, r, m]</code> / <code>WAV 0</code></td><td><code>WAV 2</code> of <code>WAV 12, 1, 1</code></td><td><strong>Ingebouwd MicroSD <code>.WAV</code>-commando:</strong> <code>WAV</code>=lijst alle 16 tracks, <code>WAV 0</code>=stop, <code>WAV nr[,rate[,mode]]</code> speelt op de <strong>Audio Hulp-CPU</strong> (<code>mode 0</code>=achtergrond, <code>1</code>=oneindige loop, <code>2</code>=wacht)</td></tr>
-          <tr><td><code>PEEK/POKE $A018..$A01B</code></td><td><code>POKE $A018,62:POKE $A01B,129</code></td><td><strong>Hardware Audio Hulp-CPU (SDRAM Audio-DMA):</strong> <code>$A018</code>=Bank, <code>$A019/$A01A</code>=Pagina's L/H, <code>$A01B</code>=Start/Loop (<code>+128</code>)/Status</td></tr>
+          <tr><td><code>PEEK/POKE $A016..$A01B</code></td><td><code>V=PEEK($A016):POKE $A018,62</code></td><td><strong>8-Bit PCM DAC &amp; Hardware Audio Hulp-CPU (SDRAM Audio-DMA):</strong> <code>$A016</code>=live sample (<code>0..255</code>, voor equalizers!), <code>$A018</code>=Bank, <code>$A019/$A01A</code>=Pagina's L/H, <code>$A01B</code>=Start/Loop (<code>+128</code>)/Status</td></tr>
           <tr><td><code>BEEP hz,duur_10ms</code></td><td><code>BEEP 880, 15</code></td><td>Pieptoon van <code>hz</code> Hz voor <code>duur × 10 ms</code> (<code>15</code> = 0,15 s)</td></tr>
           <tr><td><code>WAIT duur_10ms</code></td><td><code>WAIT 1</code> of <code>WAIT 50</code></td><td>Wacht <code>duur × 10 ms</code> (<code>1</code> ≈ 1 frame, <code>100</code> = 1 seconde)</td></tr>
           <tr><td><code>INPUT ["vraag",] V</code></td><td><code>INPUT "STRAAL", R</code></td><td>Vraagt de gebruiker om een getal/formule en slaat op in <code>V</code></td></tr>
@@ -3490,6 +3791,7 @@ RUN</pre></div>
           <tr><td><code>BRUN "JUKEBOX" / "DIEREN"</code></td><td><code>SD : DRIVE 1 : BRUN "DIEREN"</code></td><td>Start 8-Song 16-Bit Stereo Muziek Jukebox v1.1 of Twentse Boerderij Geluiden Studio</td></tr>
           <tr><td><code>BRUN "UFO" / "PONG"</code></td><td><code>SD : DRIVE 1 : BRUN "PONG"</code></td><td>Start <strong>UFO: Enemy Unknown 6502</strong> (X-COM Tactical Battlescape) of <strong>Twente Arcade Pong Deluxe 6502</strong> (1P vs CPU / 2P + Turbo-Smash + 720p Boerderij/Space!)</td></tr>
           <tr><td><code>BRUN "MUIS"</code></td><td><code>SD : DRIVE 0 : BRUN "MUIS"</code></td><td>Start <strong>Hardware Sprite Muis-Test, Doelwit-Game &amp; Teken-Studio</strong> (<code>Alt + Pijltjes</code> = muispijl, <code>Alt + Spatie/Enter</code> = klik/teken, <code>720P</code> = transparant tekenen!)</td></tr>
+          <tr><td><code>BRUN "MP3PLAY" / "WAVPLAY"</code></td><td><code>SD : DRIVE 0 : BRUN "MP3PLAY"</code></td><td>Start <strong>MP3Commander 2.1</strong> — Midnight-Commander Dual-Pane <code>.MP3</code> (8 lange songs tot 2:11 / 1.024 KB) &amp; <code>.WAV</code> (16 tracks) Speler met 16-Band Live Equalizer &amp; Achtergrond-Modus (<code>B</code>)!</td></tr>
           <tr><td><code>BRUN "WRITER" / "CALC" / "IMPRESS"</code></td><td><code>SD : BRUN "WRITER"</code></td><td>Start LibreOffice 6502 Suite (Tekstverwerker, Grafiek-Calc, Presentatie/Draw)</td></tr>
           <tr><td><code>BRUN "BROWSER" / "NETTERM"</code></td><td><code>SD : BRUN "BROWSER"</code></td><td>Start W5500 HTTP Powerbaas Browser of TCP Telnet Server (poort 23) &amp; BBS</td></tr>
           <tr><td><code>BRUN "RFTS" / "PACMAN65"</code></td><td><code>SD : BRUN "RFTS"</code></td><td>Start Reach for the Stars (4X Space Strategy) of 60 FPS Arcade Pac-Man</td></tr>
