@@ -935,8 +935,15 @@ class BasicTerminalControlCenter:
             if not self.ser or not self.ser.is_open:
                 if not self.connect_serial():
                     return
+            exp_cmd, used_drv = sd_tools.expand_mp3_in_basic_line(cmd)
             with self.ser_lock:
-                for ch in cmd:
+                if used_drv:
+                    for ch in sd_tools.MP3_DRIVER_BOOT_CMD:
+                        self.ser.write(ch.encode("ascii", errors="ignore"))
+                        time.sleep(0.0008)
+                    self.ser.write(b"\r")
+                    time.sleep(0.05)
+                for ch in exp_cmd:
                     self.ser.write(ch.encode("ascii", errors="ignore"))
                     time.sleep(0.001)
                 self.ser.write(b"\r")

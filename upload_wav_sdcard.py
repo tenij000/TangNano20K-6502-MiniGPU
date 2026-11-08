@@ -988,9 +988,15 @@ def main():
             print(f"Verbonden met Tang Nano 20K op {port}. Installeren van snelle SD-Sector Streamer ($7E00)...")
             install_streamer_stub(ser, streamer_code)
 
-            # 1. Write WAV Directory to Sector $2000
+            # 1. Write WAV Directory to Sector $2000 (+ MP3 Dir $2001 & MP3 BASIC Driver $2002 if present)
             print("Schrijven van WAV Directory naar SD Sector $2000...")
             upload_sectors_via_basic(ser, 0x2000, dir_sector, label="WAV-DIR $2000")
+            mp3_dir_file = os.path.join(WAV_DIR, "mp3_dir_sector2001.bin")
+            if os.path.exists(mp3_dir_file):
+                upload_sectors_via_basic(ser, 0x2001, open(mp3_dir_file, "rb").read(), label="MP3-DIR $2001")
+            mp3_drv_file = os.path.join(WAV_DIR, "mp3_basic_driver_sector2002.bin")
+            if os.path.exists(mp3_drv_file):
+                upload_sectors_via_basic(ser, 0x2002, open(mp3_drv_file, "rb").read(), label="MP3-DRV $2002")
 
             # 2. Write .WAV Tracks (64 sectors = 32 KB each)
             if track1_only:

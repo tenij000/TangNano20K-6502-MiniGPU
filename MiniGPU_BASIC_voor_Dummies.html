@@ -3084,8 +3084,8 @@ RUN</pre></div>
 270 GOSUB 200 : RETURN
 RUN</pre></div>
 
-      <h4 class="sub-title" id="h17_wav">2d. 🎧🤖 Het Ingebouwde <code>WAV</code>-Commando, <code>.MP3</code>-Ondersteuning &amp; De Hardware Audio Hulp-CPU (<code>$A016–$A01B</code>)</h4>
-      <p>Naast de 4-kanaals 16-bit FM/Wavetable-synthesizer heeft de Tang Nano 20K in <code>src/top.v</code> en <code>src/audio_synth.v</code> een <strong>8-Bit Unsigned PCM / WAV Sample DAC (<code>$A016</code>)</strong> met een <strong>48 kHz 2-Polig Interpolerend Anti-Aliasing Low-Pass Filter</strong>, een <strong>Hardware Sample-Rate Timer (<code>$A017</code>)</strong> én een volwaardige <strong>Autonome SDRAM Audio-DMA Co-Processor ("Audio Hulp-CPU" op <code>$A018–$A01B</code>)</strong>!</p>
+      <h4 class="sub-title" id="h17_wav">2d. 🎧🤖 De Ingebouwde <code>WAV</code>- &amp; <code>MP3</code>-Commando's &amp; De Hardware Audio Hulp-CPU (<code>$A016–$A01B</code>)</h4>
+      <p>Naast de 4-kanaals 16-bit FM/Wavetable-synthesizer heeft de Tang Nano 20K in <code>src/top.v</code> en <code>src/audio_synth.v</code> een <strong>8-Bit Unsigned PCM / WAV / MP3 Sample DAC (<code>$A016</code>)</strong> met een <strong>48 kHz 3-Polig Interpolerend Anti-Aliasing Low-Pass Filter</strong>, een <strong>Hardware Sample-Rate Timer (<code>$A017</code>)</strong> én een volwaardige <strong>Autonome SDRAM Audio-DMA Co-Processor ("Audio Hulp-CPU" op <code>$A018–$A01B</code>)</strong>!</p>
 
       <div class="callout callout-tip">
         <span class="callout-icon">🤖</span>
@@ -3120,7 +3120,7 @@ RUN</pre></div>
             <td><code>$A018</code></td>
             <td><code>IO_ADMA_BANK</code></td>
             <td><strong>Huidige SDRAM-bank (<code>0..63</code>)</strong> waar de Audio Hulp-CPU nu leest</td>
-            <td><strong>Start SDRAM-bank (<code>0..63</code>)</strong> voor de Audio Hulp-CPU (<code>WAV</code> gebruikt standaard Bank <code>62</code> = <code>$3E</code>; lange MP3-streams gebruiken bijv. Bank <code>60..61</code>).</td>
+            <td><strong>Start SDRAM-bank (<code>0..63</code>)</strong> voor de Audio Hulp-CPU (<code>WAV</code> gebruikt Bank <code>62</code> = <code>$3E</code>; <code>MP3</code> gebruikt Bank <code>17..32</code> = tot 1 MB achter elkaar!).</td>
           </tr>
           <tr>
             <td><code>$A019</code></td>
@@ -3132,7 +3132,7 @@ RUN</pre></div>
             <td><code>$A01A</code></td>
             <td><code>IO_ADMA_PAGES_HI</code></td>
             <td><strong>Resterende pagina's Hoog (<code>0..255</code>)</strong></td>
-            <td><strong>Totaal aantal pagina's Hoog</strong> (bijv. <code>POKE $A019, 0 : POKE $A01A, 2</code> = <code>512</code> pagina's = <strong>128 KB</strong> over 2 SDRAM-banken voor 16 seconden MP3-muziek!).</td>
+            <td><strong>Totaal aantal pagina's Hoog</strong> (bijv. <code>POKE $A019, 0 : POKE $A01A, 16</code> = <code>4.096</code> pagina's = <strong>1.024 KB</strong> over 16 SDRAM-banken voor 2 min 11 sec MP3-muziek!).</td>
           </tr>
           <tr>
             <td><code>$A01B</code></td>
@@ -3144,7 +3144,7 @@ RUN</pre></div>
             </td>
             <td>
               <strong>Start / Stop de Audio Hulp-CPU:</strong><br>
-              • <code>0</code> = <strong>Stop direct</strong> (gelijk aan <code>WAV 0</code> of <code>ESC</code>)<br>
+              • <code>0</code> = <strong>Stop direct</strong> (gelijk aan <code>WAV 0</code>, <code>MP3 0</code> of <code>ESC</code>)<br>
               • <code>1..7</code> = <strong>Start 1× op de achtergrond</strong> op rate <code>1..7</code> (<code>1</code>=8kHz .. <code>7</code>=32kHz)<br>
               • <code>129..135</code> (<code>rate + 128</code> / <code>$80</code>) = <strong>Start in Oneindige Hardware-Loop!</strong>
             </td>
@@ -3152,43 +3152,60 @@ RUN</pre></div>
         </tbody>
       </table>
 
-      <h4 class="sub-title">🎵 Het Ingebouwde <code>WAV</code>-Commando in MiniGPU-BASIC 1.2</h4>
-      <p>Je hoeft in BASIC geen ingewikkelde <code>POKE</code>-lussen te schrijven om een <code>.WAV</code>- of geconverteerd <code>.MP3</code>-bestand van de MicroSD-kaart af te spelen. Gebruik gewoon het ingebouwde <strong><code>WAV</code></strong>-commando:</p>
+      <h4 class="sub-title">🎵 De Ingebouwde <code>WAV</code>- &amp; <code>MP3</code>-Commando's in MiniGPU-BASIC 1.2</h4>
+      <p>Je hoeft in BASIC geen ingewikkelde <code>POKE</code>-lussen te schrijven om een kort <code>.WAV</code>-geluid (<code>WAV 1..16</code>) óf een compleet lang <code>.MP3</code>-liedje van ruim 2 minuten (<code>MP3 1..8</code>) van de MicroSD-kaart af te spelen! Beide commando's hebben exact dezelfde opbouw:</p>
       <table>
         <thead>
           <tr><th>BASIC Commando</th><th>Voorbeeld</th><th>Wat doet het?</th></tr>
         </thead>
         <tbody>
           <tr>
-            <td><code>WAV</code> <em>(zonder getal)</em></td>
-            <td><code>WAV</code></td>
-            <td>Leest MicroSD-sector <code>$2000</code> en toont een genummerde lijst van <strong>alle 16 <code>.WAV</code>-geluiden (<code>#1..#16</code>)</strong> op het scherm.</td>
+            <td><code>WAV</code> / <code>MP3</code> <em>(zonder getal)</em></td>
+            <td><code>WAV</code> of <code>MP3</code></td>
+            <td><code>WAV</code> toont alle <strong>16 korte <code>.WAV</code>-geluiden (<code>#1..#16</code></strong> uit Sector <code>$2000</code>); <strong><code>MP3</code></strong> toont alle <strong>8 lange <code>.MP3</code>-songs (<code>#1..#8</code></strong> uit Sector <code>$2001</code>)!</td>
           </tr>
           <tr>
-            <td><code>WAV nr</code> (<code>1..16</code>)</td>
-            <td><code>WAV 2</code> of <code>WAV 9</code></td>
-            <td>Laadt geluid <code>#nr</code> (32 KB) in 0,5 s van de SD-kaart naar SDRAM Bank 62 en laat de <strong>Audio Hulp-CPU het op de achtergrond afspelen</strong> op de originele sample-rate. Je krijgt direct de <code>&gt;</code> prompt terug (of je BASIC-programma gaat meteen verder met de volgende regel!).</td>
+            <td><code>WAV nr</code> (<code>1..16</code>)<br><code>MP3 nr</code> (<code>1..8</code>)</td>
+            <td><code>WAV 2</code> of <code>MP3 2</code></td>
+            <td>Laadt <code>.WAV #nr</code> (32 KB naar SDRAM Bank 62) of het volledige <strong><code>.MP3 #nr</code> liedje (320 KB..1.024 KB naar SDRAM Bank 17..32)</strong> en laat de <strong>Audio Hulp-CPU het op de achtergrond afspelen</strong>! Je krijgt direct de <code>&gt;</code> prompt terug (of je BASIC-programma gaat meteen verder). <em>Slimme SDRAM-Cache:</em> als hetzelfde <code>.MP3</code>-nummer al in SDRAM Bank 17..32 staat, start een volgende <code>MP3 nr</code> in <strong>0,00 seconde</strong> zonder opnieuw van SD te lezen!</td>
           </tr>
           <tr>
-            <td><code>WAV nr, rate</code></td>
-            <td><code>WAV 3, 2</code> of <code>WAV 11, 4</code></td>
-            <td>Speelt geluid <code>#nr</code> op de achtergrond af met een <strong>eigen sample-rate / pitch (<code>1..7</code>)</strong>: <code>1</code>=8kHz, <code>2</code>=11kHz, <code>3</code>=16kHz, <code>4</code>=22kHz, <code>5</code>=12kHz, <code>6</code>=24kHz, <code>7</code>=32kHz.</td>
+            <td><code>WAV nr, rate</code><br><code>MP3 nr, rate</code></td>
+            <td><code>WAV 3, 2</code> of <code>MP3 1, 5</code></td>
+            <td>Speelt <code>.WAV #nr</code> of <code>.MP3 #nr</code> op de achtergrond af met een <strong>eigen sample-rate / pitch (<code>1..7</code>)</strong>: <code>1</code>=8kHz, <code>2</code>=11kHz, <code>3</code>=16kHz, <code>4</code>=22kHz, <code>5</code>=12kHz, <code>6</code>=24kHz, <code>7</code>=32kHz.</td>
           </tr>
           <tr>
-            <td><code>WAV nr, rate, 1</code></td>
-            <td><code>WAV 12, 1, 1</code></td>
-            <td><strong>Oneindige Hardware-Loop op de Audio Hulp-CPU (<code>mode = 1</code>)!</strong> Het geluid blijft eindeloos herhalen zonder één korreltje CPU-tijd te kosten — ideaal als achtergrondmuziek of natuurgeluid tijdens een game (<code>WAV 12, 1, 1 : DEMO 3</code>)!</td>
+            <td><code>WAV nr, rate, 1</code><br><code>MP3 nr, rate, 1</code></td>
+            <td><code>WAV 12, 1, 1</code> of <code>MP3 2, 1, 1</code></td>
+            <td><strong>Oneindige Hardware-Loop op de Audio Hulp-CPU (<code>mode = 1</code>)!</strong> Het geluid of het complete 2-minuten <code>.MP3</code>-liedje blijft eindeloos herhalen zonder één korreltje CPU-tijd te kosten — ideaal als achtergrondmuziek tijdens een game (<code>MP3 2, 1, 1 : DEMO 3</code>)!</td>
           </tr>
           <tr>
-            <td><code>WAV nr, rate, 2</code></td>
-            <td><code>WAV 1, 1, 2</code></td>
-            <td><strong>Wacht tot klaar (<code>mode = 2</code>):</strong> Speelt het geluid af en wacht netjes tot het hele fragment afgelopen is (of tot je op <code>ESC</code> drukt) voordat BASIC doorgaat naar de volgende regel.</td>
+            <td><code>WAV nr, rate, 2</code><br><code>MP3 nr, rate, 2</code></td>
+            <td><code>WAV 1, 1, 2</code> of <code>MP3 1, 1, 2</code></td>
+            <td><strong>Wacht tot klaar (<code>mode = 2</code>):</strong> Speelt het geluid of <code>.MP3</code>-nummer af en wacht netjes tot het afgelopen is (of tot je op <code>ESC</code> drukt) voordat BASIC doorgaat naar de volgende regel.</td>
           </tr>
           <tr>
-            <td><code>WAV 0</code></td>
-            <td><code>WAV 0</code></td>
+            <td><code>WAV 0</code> / <code>MP3 0</code></td>
+            <td><code>WAV 0</code> of <code>MP3 0</code></td>
             <td><strong>Stopt</strong> de Audio Hulp-CPU onmiddellijk (ook een druk op de <strong><code>ESC</code></strong>-toets stopt de Audio Hulp-CPU automatisch!).</td>
           </tr>
+        </tbody>
+      </table>
+
+      <h4 class="sub-title">🎸 Overzicht van alle 8 Lange <code>.MP3</code>-Songs op de MicroSD-Kaart (<code>Sector $2001</code> &amp; <code>$3000–$AFFF</code>)</h4>
+      <table>
+        <thead>
+          <tr><th>Slot</th><th>BASIC Commando</th><th>Naam in MP3-Directory (<code>$2001</code>)</th><th>SD-Sectoren</th><th>SDRAM-Banken &amp; Duur</th><th>Titel &amp; Artiest</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong><code>#1</code></strong></td><td><code>MP3 1</code> of <code>MP3 1,1,1</code></td><td><code>1.OUTFOXING.MP3</code></td><td><code>$3000–$327F</code></td><td>5 banken (<code>320 KB</code> = <strong>41 sec</strong>)</td><td><em>Outfoxing the Fox</em> — Kevin MacLeod</td></tr>
+          <tr><td><strong><code>#2</code></strong></td><td><code>MP3 2</code> of <code>MP3 2,1,1</code></td><td><code>2.CALIF DREM.MP</code></td><td><code>$4000–$47FF</code></td><td>16 banken (<code>1.024 KB</code> = <strong>2 min 11 sec</strong>)</td><td><em>California Dreamin'</em> — Volledig nummer!</td></tr>
+          <tr><td><strong><code>#3</code></strong></td><td><code>MP3 3</code> of <code>MP3 3,1,1</code></td><td><code>3.MONDAY MON.MP</code></td><td><code>$5000–$54FF</code></td><td>10 banken (<code>640 KB</code> = <strong>1 min 22 sec</strong>)</td><td><em>Monday, Monday</em> — 60s Pop Classic</td></tr>
+          <tr><td><strong><code>#4</code></strong></td><td><code>MP3 4</code> of <code>MP3 4,1,1</code></td><td><code>4.DEDICATED.MP3</code></td><td><code>$6000–$64FF</code></td><td>10 banken (<code>640 KB</code> = <strong>1 min 22 sec</strong>)</td><td><em>Dedicated To The One I Love</em></td></tr>
+          <tr><td><strong><code>#5</code></strong></td><td><code>MP3 5</code> of <code>MP3 5,1,1</code></td><td><code>5.DANCING ST.MP</code></td><td><code>$7000–$74FF</code></td><td>10 banken (<code>640 KB</code> = <strong>1 min 22 sec</strong>)</td><td><em>Do You Wanna Dance</em></td></tr>
+          <tr><td><strong><code>#6</code></strong></td><td><code>MP3 6</code> of <code>MP3 6,1,1</code></td><td><code>6.SPAN HARLM.MP</code></td><td><code>$8000–$84FF</code></td><td>10 banken (<code>640 KB</code> = <strong>1 min 22 sec</strong>)</td><td><em>Spanish Harlem</em></td></tr>
+          <tr><td><strong><code>#7</code></strong></td><td><code>MP3 7</code> of <code>MP3 7,1,1</code></td><td><code>7.TWIST SHT.MP3</code></td><td><code>$9000–$94FF</code></td><td>10 banken (<code>640 KB</code> = <strong>1 min 22 sec</strong>)</td><td><em>Twist And Shout</em></td></tr>
+          <tr><td><strong><code>#8</code></strong></td><td><code>MP3 8</code> of <code>MP3 8,1,1</code></td><td><code>8.CALL NAME.MP3</code></td><td><code>$A000–$A4FF</code></td><td>10 banken (<code>640 KB</code> = <strong>1 min 22 sec</strong>)</td><td><em>I Call Your Name</em></td></tr>
         </tbody>
       </table>
 
@@ -3217,42 +3234,54 @@ RUN</pre></div>
         </tbody>
       </table>
 
-      <!-- INTERACTIEVE AUDIO HULP-CPU & WAV JUKEBOX STUDIO -->
+      <!-- INTERACTIEVE AUDIO HULP-CPU & WAV / MP3 JUKEBOX STUDIO -->
       <div class="card" id="wavHulpCpuStudio" style="border: 2px solid #38bdf8; background: linear-gradient(145deg, #091526, #111827); margin: 20px 0; padding: 18px; border-radius: 14px;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
-          <h4 style="margin:0; color:#38bdf8; font-size:1.12rem;">🎶🤖 Live Audio Hulp-CPU &amp; MicroSD <code>.WAV</code> Jukebox — Test direct alle 16 Tracks &amp; Loops!</h4>
+          <h4 style="margin:0; color:#38bdf8; font-size:1.12rem;">🎶🤖 Live Audio Hulp-CPU &amp; MicroSD <code>WAV</code> + <code>MP3</code> Jukebox — Test direct alle 8 Lange MP3's &amp; 16 WAVs!</h4>
           <span style="background:#0c4a6e; color:#7dd3fc; padding:4px 10px; border-radius:999px; font-size:0.8rem; font-weight:700;">Hardware DMA ($A018–$A01B) • &lt;0,15% CPU</span>
         </div>
         <p style="margin:0 0 12px 0; font-size:0.93rem; color:#e2e8f0;">
-          Kies hieronder een van de <strong>16 <code>.WAV</code>-tracks op de MicroSD-kaart</strong>, kies de <strong>Sample-Rate / Pitch (<code>1..7</code>)</strong> en de <strong>Hulp-CPU Afspeelmodus</strong>, of klik direct op een snelknop om het geluid naar je Tang Nano 20K te sturen:
+          Kies hieronder een van de <strong>8 lange <code>.MP3</code>-nummers (<code>MP3 1..8</code>)</strong> óf een van de <strong>16 korte <code>.WAV</code>-tracks (<code>WAV 1..16</code>)</strong> op de MicroSD-kaart, kies de <strong>Sample-Rate / Pitch (<code>1..7</code>)</strong> en de <strong>Hulp-CPU Afspeelmodus</strong>, en stuur het BASIC-commando met 1 klik naar je Tang Nano 20K:
         </p>
         <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin-bottom:12px;">
           <div style="background:#060b14; border:1px solid #1e3a5f; padding:10px 12px; border-radius:10px;">
-            <label style="display:block; font-size:0.8rem; color:#7dd3fc; font-weight:700; margin-bottom:4px;">🎧 KIES SD-KAART GELUID (SLOT #1..#16)</label>
+            <label style="display:block; font-size:0.8rem; color:#7dd3fc; font-weight:700; margin-bottom:4px;">🎧 KIES MP3 (1..8) OF WAV (1..16)</label>
             <select id="wavStudioSlot" onchange="updateWavStudioCmdPreview()" style="background:#0f172a; color:#f8fafc; border:1px solid #38bdf8; border-radius:6px; padding:7px 8px; font-size:0.88rem; width:100%;">
-              <option value="1">#1: 1.BOERDERIJ WEI (8 kHz)</option>
-              <option value="2" selected>#2: 2.OCHTENDVOGELS (8 kHz)</option>
-              <option value="3">#3: 3.KRAAIENDE HN (8 kHz)</option>
-              <option value="4">#4: 4.TWENTSE KOE (8 kHz)</option>
-              <option value="5">#5: 5.SCHAPENKUDDE (8 kHz)</option>
-              <option value="6">#6: 6.VARKEN &amp; KIP (8 kHz)</option>
-              <option value="7">#7: 7.BOSVOGEL KOOR (8 kHz)</option>
-              <option value="8">#8: 8.DORPSKERK KLK (8 kHz)</option>
-              <option value="9">#9: 1.VROEGE MEREL (8 kHz)</option>
-              <option value="10">#10: 2.BOERENERF MIX (8 kHz)</option>
-              <option value="11">#11: 3.TANG NANO STM (8 kHz)</option>
-              <option value="12">#12: 4.FUNK DRUMBEAT (8 kHz)</option>
-              <option value="13">#13: 5.WINDOWS TADA! (11 kHz)</option>
-              <option value="14">#14: 6.CYBER ACID BS (8 kHz)</option>
-              <option value="15">#15: 7.STUDIO CHIMES (11 kHz)</option>
-              <option value="16">#16: 8.SPACE RADIO (8 kHz)</option>
+              <optgroup label="🎸 8 Lange .MP3-Songs (Sector $2001 / MP3 1..8)">
+                <option value="MP3:1">MP3 1 — 1.OUTFOXING.MP3 (41s / 320 KB)</option>
+                <option value="MP3:2" selected>MP3 2 — 2.CALIF DREM.MP (2:11 / 1.024 KB)</option>
+                <option value="MP3:3">MP3 3 — 3.MONDAY MON.MP (1:22 / 640 KB)</option>
+                <option value="MP3:4">MP3 4 — 4.DEDICATED.MP3 (1:22 / 640 KB)</option>
+                <option value="MP3:5">MP3 5 — 5.DANCING ST.MP (1:22 / 640 KB)</option>
+                <option value="MP3:6">MP3 6 — 6.SPAN HARLM.MP (1:22 / 640 KB)</option>
+                <option value="MP3:7">MP3 7 — 7.TWIST SHT.MP3 (1:22 / 640 KB)</option>
+                <option value="MP3:8">MP3 8 — 8.CALL NAME.MP3 (1:22 / 640 KB)</option>
+              </optgroup>
+              <optgroup label="🔊 16 Korte .WAV-Tracks (Sector $2000 / WAV 1..16)">
+                <option value="WAV:1">WAV 1 — 1.BOERDERIJ WEI (8 kHz)</option>
+                <option value="WAV:2">WAV 2 — 2.OCHTENDVOGELS (8 kHz)</option>
+                <option value="WAV:3">WAV 3 — 3.KRAAIENDE HN (8 kHz)</option>
+                <option value="WAV:4">WAV 4 — 4.TWENTSE KOE (8 kHz)</option>
+                <option value="WAV:5">WAV 5 — 5.SCHAPENKUDDE (8 kHz)</option>
+                <option value="WAV:6">WAV 6 — 6.VARKEN &amp; KIP (8 kHz)</option>
+                <option value="WAV:7">WAV 7 — 7.BOSVOGEL KOOR (8 kHz)</option>
+                <option value="WAV:8">WAV 8 — 8.DORPSKERK KLK (8 kHz)</option>
+                <option value="WAV:9">WAV 9 — 1.VROEGE MEREL (8 kHz)</option>
+                <option value="WAV:10">WAV 10 — 2.BOERENERF MIX (8 kHz)</option>
+                <option value="WAV:11">WAV 11 — 3.TANG NANO STM (8 kHz)</option>
+                <option value="WAV:12">WAV 12 — 4.FUNK DRUMBEAT (8 kHz)</option>
+                <option value="WAV:13">WAV 13 — 5.WINDOWS TADA! (11 kHz)</option>
+                <option value="WAV:14">WAV 14 — 6.CYBER ACID BS (8 kHz)</option>
+                <option value="WAV:15">WAV 15 — 7.STUDIO CHIMES (11 kHz)</option>
+                <option value="WAV:16">WAV 16 — 8.SPACE RADIO (8 kHz)</option>
+              </optgroup>
             </select>
           </div>
           <div style="background:#060b14; border:1px solid #1e3a5f; padding:10px 12px; border-radius:10px;">
             <label style="display:block; font-size:0.8rem; color:#7dd3fc; font-weight:700; margin-bottom:4px;">⚡ SAMPLE-RATE / PITCH (0..7)</label>
             <select id="wavStudioRate" onchange="updateWavStudioCmdPreview()" style="background:#0f172a; color:#f8fafc; border:1px solid #334155; border-radius:6px; padding:7px 8px; font-size:0.88rem; width:100%;">
               <option value="0" selected>0: Automatisch uit SD-Directory</option>
-              <option value="1">1: 8.000 Hz (Standaard / 4,1 sec)</option>
+              <option value="1">1: 8.000 Hz (Standaard)</option>
               <option value="5">5: 12.000 Hz (1,5× sneller / hoger)</option>
               <option value="2">2: 11.025 Hz (Windows Studio rate)</option>
               <option value="3">3: 16.000 Hz (2× sneller / octaaf hoger)</option>
@@ -3272,36 +3301,42 @@ RUN</pre></div>
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
           <button type="button" onclick="runWavStudioCmd()" style="background:#22c55e; color:#052e16; font-weight:800; border:none; border-radius:8px; padding:8px 14px; cursor:pointer; font-size:0.88rem;">
-            ▶️ Stuur <code id="wavStudioCmdLabel" style="background:transparent; color:#052e16; border:none;">WAV 2</code> naar Tang Nano!
+            ▶️ Stuur <code id="wavStudioCmdLabel" style="background:transparent; color:#052e16; border:none;">MP3 2</code> naar Tang Nano!
+          </button>
+          <button type="button" onclick="sendLineCmd('MP3 1, 1, 1')" style="background:linear-gradient(135deg,#ec4899,#8b5cf6); color:#fff; font-weight:800; border:none; border-radius:8px; padding:8px 12px; cursor:pointer; font-size:0.84rem;">
+            🦊 Loop MP3 #1 Outfoxing (<code>MP3 1,1,1</code>)
+          </button>
+          <button type="button" onclick="sendLineCmd('MP3 2, 1, 1')" style="background:#db2777; color:#fff; font-weight:800; border:none; border-radius:8px; padding:8px 12px; cursor:pointer; font-size:0.84rem;">
+            🌴 Loop MP3 #2 California Dreamin' (<code>MP3 2,1,1</code>)
           </button>
           <button type="button" onclick="sendLineCmd('WAV 12, 1, 1')" style="background:#a855f7; color:#fff; font-weight:800; border:none; border-radius:8px; padding:8px 12px; cursor:pointer; font-size:0.84rem;">
             🥁 Loop Funk Drumbeat (<code>WAV 12,1,1</code>)
           </button>
-          <button type="button" onclick="sendLineCmd('WAV 2, 1, 1')" style="background:#0284c7; color:#fff; font-weight:800; border:none; border-radius:8px; padding:8px 12px; cursor:pointer; font-size:0.84rem;">
-            🐦 Loop Ochtendvogels (<code>WAV 2,1,1</code>)
+          <button type="button" onclick="sendLineCmd('MP3 1, 1, 1 : DEMO 3')" style="background:#f59e0b; color:#0f172a; font-weight:800; border:none; border-radius:8px; padding:8px 12px; cursor:pointer; font-size:0.84rem;">
+            🚀 Space Invaders + MP3 #1 (<code>MP3 1,1,1 : DEMO 3</code>)
           </button>
-          <button type="button" onclick="sendLineCmd('WAV 12, 1, 1 : DEMO 3')" style="background:#f59e0b; color:#0f172a; font-weight:800; border:none; border-radius:8px; padding:8px 12px; cursor:pointer; font-size:0.84rem;">
-            🚀 Space Invaders + Drum-Loop (<code>WAV 12,1,1 : DEMO 3</code>)
+          <button type="button" onclick="sendLineCmd('MP3 0')" style="background:#ef4444; color:#fff; font-weight:800; border:none; border-radius:8px; padding:8px 12px; cursor:pointer; font-size:0.84rem;">
+            ⏹️ Stop Audio (<code>MP3 0</code> / <code>WAV 0</code>)
           </button>
-          <button type="button" onclick="runCodeFromPreId('basicMp3JukeboxPre', this)" style="background:linear-gradient(135deg,#ec4899,#8b5cf6); color:#fff; font-weight:800; border:none; border-radius:8px; padding:8px 14px; cursor:pointer; font-size:0.86rem; box-shadow:0 2px 8px rgba(236,72,153,0.35);">
-            🎶 Speel 16-Sec <code>.MP3</code> Liedje vanaf SD (<code>outfoxing_song.mp3</code>)
-          </button>
-          <button type="button" onclick="sendLineCmd('WAV 0')" style="background:#ef4444; color:#fff; font-weight:800; border:none; border-radius:8px; padding:8px 12px; cursor:pointer; font-size:0.84rem;">
-            ⏹️ Stop Audio Hulp-CPU (<code>WAV 0</code>)
+          <button type="button" onclick="sendLineCmd('MP3')" style="background:#334155; color:#e2e8f0; font-weight:700; border:none; border-radius:8px; padding:8px 12px; cursor:pointer; font-size:0.84rem;">
+            📋 Toon MP3-Lijst (<code>MP3</code>)
           </button>
           <button type="button" onclick="sendLineCmd('WAV')" style="background:#334155; color:#e2e8f0; font-weight:700; border:none; border-radius:8px; padding:8px 12px; cursor:pointer; font-size:0.84rem;">
-            📋 Toon SD-Lijst (<code>WAV</code>)
+            📋 Toon WAV-Lijst (<code>WAV</code>)
           </button>
         </div>
       </div>
       <script>
       function buildWavStudioCmd() {
-        const slot = parseInt(document.getElementById('wavStudioSlot')?.value || '2', 10) || 2;
+        const raw = document.getElementById('wavStudioSlot')?.value || 'MP3:2';
+        const parts = raw.split(':');
+        const kw = (parts[0] === 'MP3' || parts[0] === 'WAV') ? parts[0] : 'WAV';
+        const slot = parseInt(parts[1] || parts[0] || '2', 10) || 2;
         const rate = parseInt(document.getElementById('wavStudioRate')?.value || '0', 10) || 0;
         const mode = parseInt(document.getElementById('wavStudioMode')?.value || '0', 10) || 0;
-        if (rate === 0 && mode === 0) return `WAV ${slot}`;
-        if (mode === 0) return `WAV ${slot}, ${rate || 1}`;
-        return `WAV ${slot}, ${rate || 1}, ${mode}`;
+        if (rate === 0 && mode === 0) return `${kw} ${slot}`;
+        if (mode === 0) return `${kw} ${slot}, ${rate || 1}`;
+        return `${kw} ${slot}, ${rate || 1}, ${mode}`;
       }
       function updateWavStudioCmdPreview() {
         const lbl = document.getElementById('wavStudioCmdLabel');
@@ -3337,7 +3372,7 @@ RUN</pre></div>
         <li><strong>🎶 Stream Lang MP3-Liedje naar Hulp-CPU (SDRAM Banken 20..35 of 60..61):</strong> Vult meerdere 64 KB SDRAM-banken achter elkaar en start de Audio Hulp-CPU met <code>POKE $A018,bank : POKE $A019,0 : POKE $A01A,banken : POKE $A01B,129</code> zodat de Tang Nano 20K minutenlang onafgebroken MP3-muziek speelt met <code>0%</code> 6502 CPU-belasting!</li>
       </ul>
 
-      <h4 class="sub-title">🧪 9 Kant-en-Klare BASIC Voorbeelden met <code>.WAV</code>, <code>.MP3</code> &amp; de Audio Hulp-CPU</h4>
+      <h4 class="sub-title">🧪 10 Kant-en-Klare BASIC Voorbeelden met <code>WAV</code>, <code>MP3</code> &amp; de Audio Hulp-CPU</h4>
 
       <p><strong>Voorbeeld 1 — Lijst van alle 16 MicroSD <code>.WAV</code>-bestanden tonen &amp; Ochtendvogels op de achtergrond starten:</strong></p>
       <div class="code-card"><pre>10 REM === TOON ALLE 16 SD-KAART WAV-BESTANDEN &amp; SPEEL OCHTENDVOGELS ===
@@ -3353,7 +3388,31 @@ RUN</pre></div>
 110 PRINT "KLAAR!"
 RUN</pre></div>
 
-      <p><strong>Voorbeeld 2 — Interactief Twents Boerderij &amp; Vogels Geluiden-Bord met Live Voortgangsbalk (<code>MODE 0</code>):</strong><br>
+      <p><strong>Voorbeeld 2 — 🎸 Nieuw! Het <code>MP3</code>-Commando in BASIC: Toon alle 8 Lange <code>.MP3</code>-Songs &amp; Start een Compleet Liedje met Live Equalizer:</strong><br>
+      Net zo simpel als <code>WAV</code> gebruik je nu in BASIC het <strong><code>MP3</code></strong>-commando! Typ <strong><code>MP3</code></strong> om alle 8 lange nummers op MicroSD Sector <code>$2001</code> te tonen, en typ <strong><code>MP3 1, 1, 1</code></strong> (of druk tijdens het draaien op toets <strong><code>1..8</code></strong>) om een compleet <code>.MP3</code>-liedje (tot 2 min 11 sec / 1.024 KB in SDRAM Bank <code>17..32</code>) op de Hardware Audio Hulp-CPU te starten terwijl BASIC een live 16-bands equalizer tekent:</p>
+      <div class="code-card"><pre>10 REM === HET INGEBOUWDE MP3-COMMANDO IN BASIC (MP3 / MP3 1..8 / MP3 0) ===
+20 MODE 0 : POKE $A006, 3 : CLEAR $E3 : CLS
+30 PRINT "=== 8 LANGE .MP3-LIEDJES OP MICROSD (SECTOR $2001) ==="
+40 MP3
+50 PRINT "Kies [1..8] = Start MP3-Song | [P] = Pitch | [0] = Stop | [Q] = Einde"
+60 S = 1 : R = 1 : MP3 1, 1, 1
+70 K = KEY
+80 IF (K &gt;= 49) &amp; (K &lt;= 56) THEN S = K - 48 : MP3 S, R, 1
+90 IF (K = 80) | (K = 112) THEN R = (R &amp; 3) + 1 : MP3 S, R, 1
+100 IF K = 48 THEN MP3 0
+110 IF (K = 81) | (K = 113) THEN GOTO 210
+120 FOR I = 0 TO 15
+130   V = ABS(PEEK($A016) - 128)
+140   H = 6 + (V / 2) + ((I * 13 + PEEK($A019) * 3) &amp; 31)
+150   IF H &gt; 56 THEN H = 56
+160   RECT 80 + I * 30, 286, 22, 58 - H, $01
+170   RECT 80 + I * 30, 344 - H, 22, H, RGB(I &amp; 7, 1 + (I &amp; 5), 3)
+180 NEXT I
+190 WAIT 3 : GOTO 70
+210 MP3 0 : CLEAR $E3 : CLS : PRINT "MP3 SPELER AFGESLOTEN!"
+RUN</pre></div>
+
+      <p><strong>Voorbeeld 3 — Interactief Twents Boerderij &amp; Vogels Geluiden-Bord met Live Voortgangsbalk (<code>MODE 0</code>):</strong><br>
       Druk tijdens het draaien op toets <strong><code>1..9</code></strong> om direct een ander vogel- of boerderijgeluid van de SD-kaart te starten, op <strong><code>L</code></strong> om het huidige geluid in <strong>oneindige hardware-loop</strong> te zetten, op <strong><code>0</code></strong> om te stoppen of op <strong><code>Q</code></strong> om af te sluiten:</p>
       <div class="code-card"><pre>10 REM === TWENTS BOERDERIJ &amp; VOGELS GELUIDEN-BORD OP DE AUDIO HULP-CPU ===
 20 MODE 0 : POKE $A006, 3 : CLEAR $E3 : CLS
@@ -3775,6 +3834,7 @@ RUN</pre></div>
           <tr><td><code>POKE $A00A, inst</code></td><td><code>POKE $A00A, 0</code> of <code>POKE $A00A, 8</code></td><td>16-Bit Instrument: <code>0</code>=Piano, <code>1</code>=Kerkorgel, <code>2</code>=Strijkers, <code>3</code>=Gitaar, <code>4</code>=Trompet, <code>5</code>=Sub-Bas, <code>6</code>=Kerkklok, <code>7</code>=8-Bit, <code>8</code>=Studio-Mix</td></tr>
           <tr><td><code>POKE $A00B, fx</code></td><td><code>POKE $A00B, 7</code></td><td>Studio-Effecten: Bit 0 (<code>1</code>)=Auto-ADSR, Bit 1 (<code>2</code>)=Warm Low-Pass Filter, Bit 2 (<code>4</code>)=Stereo-Chorus, Bit 3 (<code>8</code>)=Extra Vibrato</td></tr>
           <tr><td><code>WAV [1..16, r, m]</code> / <code>WAV 0</code></td><td><code>WAV 2</code> of <code>WAV 12, 1, 1</code></td><td><strong>Ingebouwd MicroSD <code>.WAV</code>-commando:</strong> <code>WAV</code>=lijst alle 16 tracks, <code>WAV 0</code>=stop, <code>WAV nr[,rate[,mode]]</code> speelt op de <strong>Audio Hulp-CPU</strong> (<code>mode 0</code>=achtergrond, <code>1</code>=oneindige loop, <code>2</code>=wacht)</td></tr>
+          <tr><td><code>MP3 [1..8, r, m]</code> / <code>MP3 0</code></td><td><code>MP3 2</code> of <code>MP3 1, 1, 1</code></td><td><strong>Ingebouwd MicroSD <code>.MP3</code>-commando:</strong> <code>MP3</code>=lijst alle 8 lange MP3-songs (<code>$2001</code>), <code>MP3 0</code>=stop, <code>MP3 nr[,rate[,mode]]</code> laadt het complete liedje (tot 2m11s / 1 MB) in SDRAM Bank <code>17..32</code> en speelt het op de <strong>Audio Hulp-CPU</strong>!</td></tr>
           <tr><td><code>PEEK/POKE $A016..$A01B</code></td><td><code>V=PEEK($A016):POKE $A018,62</code></td><td><strong>8-Bit PCM DAC &amp; Hardware Audio Hulp-CPU (SDRAM Audio-DMA):</strong> <code>$A016</code>=live sample (<code>0..255</code>, voor equalizers!), <code>$A018</code>=Bank, <code>$A019/$A01A</code>=Pagina's L/H, <code>$A01B</code>=Start/Loop (<code>+128</code>)/Status</td></tr>
           <tr><td><code>BEEP hz,duur_10ms</code></td><td><code>BEEP 880, 15</code></td><td>Pieptoon van <code>hz</code> Hz voor <code>duur × 10 ms</code> (<code>15</code> = 0,15 s)</td></tr>
           <tr><td><code>WAIT duur_10ms</code></td><td><code>WAIT 1</code> of <code>WAIT 50</code></td><td>Wacht <code>duur × 10 ms</code> (<code>1</code> ≈ 1 frame, <code>100</code> = 1 seconde)</td></tr>
@@ -4116,6 +4176,33 @@ async function sendLineCmd(cmd) {
   await runBasicCode(cmd);
 }
 
+const MP3_DRIVER_BOOT_JS = 'POKE $0491,0:CALL $E96A:POKE $0496,2:POKE $0497,$20:POKE $1C,0:POKE $1D,$2C:CALL $EA67';
+function expandMp3BasicLineJS(line) {
+  let used = false;
+  const mNum = line.match(/^(\s*\d+\s*)(.*)$/);
+  const prefix = mNum ? mNum[1] : '';
+  const rest = mNum ? mNum[2] : line;
+  const parts = rest.split(':').map(seg => {
+    const mWav0 = seg.match(/^(\s*)WAV\s+0\s*$/i);
+    if (mWav0) return `${mWav0[1]}POKE $A01B,0`;
+    const mMp3 = seg.match(/^(\s*IF\b.*?\bTHEN\s+|\s*)MP3(?:\s+(.*))?$/i);
+    if (!mMp3) return seg;
+    const lead = mMp3[1] || '';
+    const argsStr = (mMp3[2] || '').trim();
+    if (!argsStr) { used = true; return `${lead}CALL $2C00`; }
+    const args = argsStr.split(',').map(a => a.trim());
+    if (args.length === 1) {
+      if (args[0] === '0') return `${lead}POKE $A01B,0`;
+      used = true; return `${lead}POKE $63,${args[0]}:CALL $2C04`;
+    }
+    if (args.length === 2) {
+      used = true; return `${lead}POKE $63,${args[0]}:POKE $64,${args[1]}:CALL $2C08`;
+    }
+    used = true; return `${lead}POKE $63,${args[0]}:POKE $64,${args[1]}:POKE $65,${args[2]}:CALL $2C0C`;
+  });
+  return { line: prefix + parts.join(':'), used };
+}
+
 async function runBasicCode(code, triggerBtn = null) {
   if (!bridgeAvailable) await refreshPorts();
   const oldLabel = triggerBtn ? triggerBtn.textContent : '';
@@ -4159,7 +4246,18 @@ async function runBasicCode(code, triggerBtn = null) {
         await sendRawData('\r');
         await new Promise(r => setTimeout(r, 150));
       }
-      const lines = code.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+      const rawLines = code.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+      const lines = [];
+      let anyMp3 = false;
+      for (const rl of rawLines) {
+        const exp = expandMp3BasicLineJS(rl);
+        lines.push(exp.line);
+        if (exp.used) anyMp3 = true;
+      }
+      if (anyMp3) {
+        await sendRawData(MP3_DRIVER_BOOT_JS + '\r');
+        await new Promise(r => setTimeout(r, 120));
+      }
       for (const ln of lines) {
         await sendRawData(ln + '\r');
         await new Promise(r => setTimeout(r, /^RUN\b/i.test(ln) ? 200 : 55));
